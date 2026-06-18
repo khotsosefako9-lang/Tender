@@ -10,11 +10,11 @@ const faqs = [
   },
   {
     q: "How does the CIDB grade filter work?",
-    a: "When you set up your profile, you enter your CIDB registration grade (1–9) and class (CE, GB, ME, EB, SQ). Our matching engine only surfaces tenders whose grade and class requirements fall within your registration — so you only see tenders you're actually eligible to bid on.",
+    a: "When you set up your profile, you enter your CIDB registration grade (1 to 9) and class (CE, GB, ME, EB, SQ). Our matching engine only surfaces tenders whose grade and class requirements fall within your registration, so you only see tenders you're actually eligible to bid on.",
   },
   {
     q: "Is the AI draft ready to submit as-is?",
-    a: "No — and we're transparent about that. The AI draft is a structured first draft: it fills in the standard sections using your company profile and publicly available tender information. You must review it, add your specific pricing, and verify compliance before submitting. Think of it as a very good starting point, not a finished document.",
+    a: "No, and we're transparent about that. The AI draft is a structured first draft that fills in the standard sections using your company profile and publicly available tender information. You must review it, add your specific pricing, and verify compliance before submitting. Think of it as a very good starting point, not a finished document.",
   },
   {
     q: "What documents do I need to upload?",
@@ -26,11 +26,11 @@ const faqs = [
   },
   {
     q: "What is the 2% success fee?",
-    a: "If a tender that appeared on Tenderpilot during your active subscription is awarded to your business, a success fee of 2% of the awarded tender value becomes payable to Tenderpilot. This is disclosed at sign-up in our Terms of Service and is only payable on actual awarded and paid contracts — not on bids submitted.",
+    a: "If a tender that appeared on Tenderpilot during your active subscription is awarded to your business, a success fee of 2% of the awarded tender value becomes payable to Tenderpilot. This is disclosed at sign-up in our Terms of Service and is only payable on actual awarded and paid contracts, not on bids submitted.",
   },
   {
     q: "Do you cover tenders outside the Eastern Cape?",
-    a: "We cover all national tenders (published on eTenders) regardless of province. For provincial and municipal tenders, our current focus is the Eastern Cape — Buffalo City, NMBM, Amathole, OR Tambo, and Eastern Cape Provincial Treasury. We're expanding to other provinces based on subscriber demand.",
+    a: "We cover all national tenders (published on eTenders) regardless of province. For provincial and municipal tenders, our current focus is the Eastern Cape: Buffalo City, NMBM, Amathole, OR Tambo, and Eastern Cape Provincial Treasury. We're expanding to other provinces based on subscriber demand.",
   },
 ];
 

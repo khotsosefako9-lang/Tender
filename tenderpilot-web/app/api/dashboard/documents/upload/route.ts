@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (!documentType)
       return NextResponse.json({ error: "Document type is required" }, { status: 400 });
 
-    // On Vercel, file system writes are not persistent — store metadata only
+    // On Vercel, file system writes are not persistent; store metadata only
     const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
 
     db.subscriber_documents.insert({

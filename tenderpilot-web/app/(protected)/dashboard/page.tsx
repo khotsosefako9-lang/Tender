@@ -150,7 +150,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             <input type="date" className="w-full h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-navy" value={expiry} onChange={e => setExpiry(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">File * (PDF, JPG, PNG — max 5MB)</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1">File * (PDF, JPG, PNG, max 5MB)</label>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="w-full text-sm" onChange={e => setFile(e.target.files?.[0] || null)} />
           </div>
           <div className="flex gap-3 pt-2">
@@ -369,7 +369,7 @@ export default function DashboardPage() {
               {deadlines.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Calendar className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  <p>No upcoming deadlines — matches will appear here.</p>
+                  <p>No upcoming deadlines. Matches will appear here.</p>
                 </div>
               ) : (
                 <div className="space-y-3">

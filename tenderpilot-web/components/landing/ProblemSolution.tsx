@@ -5,7 +5,7 @@ export function ProblemSolution() {
     <section className="py-20 bg-white px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-brand-navy mb-4">The Challenge — and Our Solution</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-brand-navy mb-4">The Challenge, and Our Solution</h2>
         </div>
         <div className="grid md:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
           {/* Problem */}
@@ -16,7 +16,7 @@ export function ProblemSolution() {
             </div>
             <ul className="space-y-4">
               {[
-                "Tenders are scattered across 50+ government portals — you can't check them all daily.",
+                "Tenders are scattered across 50+ government portals. You can't check them all daily.",
                 "Writing a compliant bid takes a full working day, even before you know if you'll win.",
                 "Miss a single deadline or forget a required form and you're automatically disqualified.",
                 "You often find out about tenders too late, when there's no time to prepare a quality response.",
@@ -38,7 +38,7 @@ export function ProblemSolution() {
             <ul className="space-y-4">
               {[
                 "We monitor 100+ portals every morning so you wake up to a curated list of relevant tenders.",
-                "AI generates a structured first-draft bid for every match — you review and refine, not write from scratch.",
+                "AI generates a structured first-draft bid for every match. You review and refine, not write from scratch.",
                 "Every tender comes with a compliance checklist so you never miss a required document again.",
                 "Alerts go out as soon as a matching tender is published, giving you maximum preparation time.",
                 "Your document vault tracks expiry dates and warns you 30 days before anything lapses.",

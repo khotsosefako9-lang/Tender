@@ -1,7 +1,7 @@
 /**
  * In-memory database layer.
  *
- * Vercel serverless functions are stateless — data resets between cold starts.
+ * Vercel serverless functions are stateless; data resets between cold starts.
  * This is intentional for deployment compatibility; swap for a persistent DB
  * (e.g. PlanetScale, Turso, Neon, or Supabase) for production persistence.
  *
@@ -104,7 +104,7 @@ function seedDemoData() {
   const demotenders: Omit<Tender, "id">[] = [
     {
       reference_number: "EC/PT/2024/001",
-      title: "Repair and Maintenance of Municipal Roads — Eastern Cape",
+      title: "Repair and Maintenance of Municipal Roads: Eastern Cape",
       description: "Routine maintenance and repair of Class 3 rural roads in the Eastern Cape region.",
       department: "EC Department of Public Works",
       portal: "eTenders",
@@ -122,7 +122,7 @@ function seedDemoData() {
     },
     {
       reference_number: "NMBM/2024/0042",
-      title: "Construction of New School Buildings — Phase 2",
+      title: "Construction of New School Buildings, Phase 2",
       description: "Construction of 8 classroom blocks and ablution facilities at three primary schools.",
       department: "Nelson Mandela Bay Municipality",
       portal: "NMBM",
@@ -158,7 +158,7 @@ function seedDemoData() {
     },
     {
       reference_number: "BCM/2024/112",
-      title: "Cleaning Services — Buffalo City Metro Offices",
+      title: "Cleaning Services: Buffalo City Metro Offices",
       description: "Provision of professional cleaning and hygiene services at 5 municipal office buildings.",
       department: "Buffalo City Metropolitan Municipality",
       portal: "eTenders",
@@ -176,7 +176,7 @@ function seedDemoData() {
     },
     {
       reference_number: "NatT/2024/0897",
-      title: "Supply and Installation of Solar Panels — Government Buildings",
+      title: "Supply and Installation of Solar Panels: Government Buildings",
       description: "National tender for renewable energy installations across government buildings.",
       department: "Department of Public Works and Infrastructure",
       portal: "eTenders",
@@ -201,9 +201,9 @@ function seedDemoData() {
 
   // Seed some award history
   const awards = [
-    { tender_reference: "EC/PT/2023/044", tender_title: "Resurfacing of Provincial Roads — N2 Corridor", department: "EC Department of Public Works", portal: "eTenders", awarded_to: "Lungisa Construction (Pty) Ltd", award_value: 3250000, award_date: "2024-03-15", province: "Eastern Cape", sector: "Roads & Infrastructure" },
-    { tender_reference: "NMBM/2023/0098", tender_title: "Construction of Community Hall — Motherwell", department: "Nelson Mandela Bay Municipality", portal: "NMBM", awarded_to: "Phakama Building Contractors", award_value: 8750000, award_date: "2024-02-28", province: "Eastern Cape", sector: "Building & Renovation" },
-    { tender_reference: "EC/DOE/2023/201", tender_title: "Electrical Maintenance — Schools Programme", department: "EC Department of Education", portal: "EC Provincial Treasury", awarded_to: "Bongani Electrical CC", award_value: 450000, award_date: "2024-04-10", province: "Eastern Cape", sector: "Electrical" },
+    { tender_reference: "EC/PT/2023/044", tender_title: "Resurfacing of Provincial Roads: N2 Corridor", department: "EC Department of Public Works", portal: "eTenders", awarded_to: "Lungisa Construction (Pty) Ltd", award_value: 3250000, award_date: "2024-03-15", province: "Eastern Cape", sector: "Roads & Infrastructure" },
+    { tender_reference: "NMBM/2023/0098", tender_title: "Construction of Community Hall: Motherwell", department: "Nelson Mandela Bay Municipality", portal: "NMBM", awarded_to: "Phakama Building Contractors", award_value: 8750000, award_date: "2024-02-28", province: "Eastern Cape", sector: "Building & Renovation" },
+    { tender_reference: "EC/DOE/2023/201", tender_title: "Electrical Maintenance: Schools Programme", department: "EC Department of Education", portal: "EC Provincial Treasury", awarded_to: "Bongani Electrical CC", award_value: 450000, award_date: "2024-04-10", province: "Eastern Cape", sector: "Electrical" },
   ];
   for (const a of awards) {
     const id = nextId.awards++;

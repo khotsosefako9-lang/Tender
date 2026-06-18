@@ -15,13 +15,13 @@ const steps = [
     icon: Search,
     step: "02",
     title: "We find your matches",
-    description: "Every morning, Tenderpilot scans 100+ portals — eTenders, NMBM, EC Provincial Treasury, and more — and surfaces tenders matched to your exact profile with a percentage match score.",
+    description: "Every morning, Tenderpilot scans 100+ portals (eTenders, NMBM, EC Provincial Treasury, and more) and surfaces tenders matched to your exact profile with a percentage match score.",
   },
   {
     icon: FileText,
     step: "03",
     title: "Receive your draft",
-    description: "Your daily email includes matched tenders, AI-drafted bid responses, and a ready-to-submit document package — complete with a compliance checklist for every tender.",
+    description: "Your daily email includes matched tenders, AI-drafted bid responses, and a ready-to-submit document package complete with a compliance checklist for every tender.",
   },
 ];
 
@@ -33,7 +33,7 @@ export function HowItWorks() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-brand-navy mb-4">How Tenderpilot Works</h2>
-          <p className="text-gray-600 max-w-xl mx-auto">From registration to your first draft bid — three simple steps.</p>
+          <p className="text-gray-600 max-w-xl mx-auto">From registration to your first draft bid in three simple steps.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((s, i) => (

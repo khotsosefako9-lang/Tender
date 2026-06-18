@@ -44,7 +44,7 @@ export default function TermsPage() {
             </ul>
             <p className="mt-3">All fees are denominated in South African Rand (ZAR) and billed monthly via PayFast recurring billing. Prices are subject to change with 30 days' written notice.</p>
 
-            <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-2">3.2 Success Fee — IMPORTANT</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-2">3.2 Success Fee: IMPORTANT</h3>
             <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg my-4">
               <p className="font-bold text-amber-900 mb-2">Success Fee Disclosure</p>
               <p className="text-amber-800">In addition to the monthly subscription fee, a <strong>success fee of 2% (two percent)</strong> of the awarded contract value is payable to Tenderpilot where:</p>
@@ -53,7 +53,7 @@ export default function TermsPage() {
                 <li>You submitted a bid for that tender; and</li>
                 <li>You were awarded the contract and received payment from the procuring department.</li>
               </ul>
-              <p className="mt-3 text-amber-800">The success fee is only payable on <strong>awarded and paid contracts</strong> — not on bids submitted. You are required to notify Tenderpilot within 14 calendar days of receiving written notification of any contract award where the tender appeared on the platform during your subscription.</p>
+              <p className="mt-3 text-amber-800">The success fee is only payable on <strong>awarded and paid contracts</strong>, not on bids submitted. You are required to notify Tenderpilot within 14 calendar days of receiving written notification of any contract award where the tender appeared on the platform during your subscription.</p>
               <p className="mt-2 text-amber-800">The 2% success fee is calculated on the total contract value (inclusive of VAT) and is payable within 30 days of the first payment received from the procuring department under the awarded contract.</p>
             </div>
             <p>Failure to disclose a contract award may result in suspension of your account and legal action to recover the owed success fee plus interest at the prime lending rate plus 2%.</p>
@@ -66,7 +66,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-brand-navy mt-8 mb-3">5. Cancellation Policy</h2>
-            <p>You may cancel your subscription at any time from your dashboard settings. Cancellation will take effect at the end of your current billing period — no refunds are issued for partial months. Tenderpilot may cancel your subscription with 30 days' notice, or immediately for breach of these Terms.</p>
+            <p>You may cancel your subscription at any time from your dashboard settings. Cancellation will take effect at the end of your current billing period. No refunds are issued for partial months. Tenderpilot may cancel your subscription with 30 days' notice, or immediately for breach of these Terms.</p>
           </section>
 
           <section>
@@ -100,7 +100,7 @@ export default function TermsPage() {
             <h2 className="text-2xl font-bold text-brand-navy mt-8 mb-3">11. Contact</h2>
             <p>Khotso Sefako t/a Tenderpilot · Gqeberha, Eastern Cape, South Africa<br />
             Phone: <a href="tel:+27655769100" className="text-brand-navy underline">+27 65 576 9100</a><br />
-            Email: <a href="mailto:khotso@tenderpilot.co.za" className="text-brand-navy underline">khotso@tenderpilot.co.za</a></p>
+            Email: <a href="mailto:khotsosefako0@gmail.com" className="text-brand-navy underline">khotsosefako0@gmail.com</a></p>
           </section>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-200">

@@ -187,7 +187,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-sm text-gray-600 max-w-[150px] truncate">{s.company_name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{s.email}</td>
                         <td className="px-4 py-3"><Badge variant={tierColor[s.tier] as "default" | "info" | "warning"} className="capitalize">{s.tier}</Badge></td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{s.cidb_grade ? `Grade ${s.cidb_grade}` : "—"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{s.cidb_grade ? `Grade ${s.cidb_grade}` : "N/A"}</td>
                         <td className="px-4 py-3"><Badge variant={s.status === "active" ? "success" : s.status === "pending" ? "warning" : "danger"} className="capitalize">{s.status}</Badge></td>
                         <td className="px-4 py-3 text-sm text-gray-600">{formatDate(s.created_at)}</td>
                       </tr>

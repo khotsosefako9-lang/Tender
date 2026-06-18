@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(subscriber: {
   const tierLabel = { scout: "Scout", bid: "Bid", pro: "Pro" }[subscriber.tier] || subscriber.tier;
   await sendEmail(
     subscriber.email,
-    "Welcome to Tenderpilot — You're all set!",
+    "Welcome to Tenderpilot: You're all set!",
     `
     <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
       <div style="background: #1e3a5f; padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
@@ -39,7 +39,7 @@ export async function sendWelcomeEmail(subscriber: {
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;" />
         <p style="color: #6b7280; font-size: 12px;">
           Tenderpilot · Gqeberha, Eastern Cape · +27 65 576 9100<br/>
-          <em>A 2% success fee applies on awarded tenders — see your Terms of Service for details.</em>
+          <em>A 2% success fee applies on awarded tenders. See your Terms of Service for details.</em>
         </p>
       </div>
     </div>
@@ -69,7 +69,7 @@ export async function sendDigestEmail(
 
   await sendEmail(
     subscriber.email,
-    `Tenderpilot Daily Digest — ${matches.length} new matches`,
+    `Tenderpilot Daily Digest: ${matches.length} new matches`,
     `
     <div style="font-family: Inter, sans-serif; max-width: 700px; margin: 0 auto; padding: 32px;">
       <div style="background: #1e3a5f; padding: 24px; border-radius: 8px 8px 0 0;">

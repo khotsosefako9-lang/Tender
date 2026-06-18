@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
           await sendDigestEmail(subscriber, newMatches);
           db.email_digests.insert({
             subscriber_id: subscriber.id,
-            subject: `Tenderpilot Daily Digest — ${newMatches.length} new matches`,
+            subject: `Tenderpilot Daily Digest: ${newMatches.length} new matches`,
             tender_count: newMatches.length,
             sent_at: new Date().toISOString(),
             status: "sent",
@@ -105,6 +105,6 @@ function generateBidDraft(tender: Tender, subscriber: Subscriber) {
       { item: "OHSA Safety Plan", required: true },
       { item: "Site Visit / Compulsory Briefing Certificate", required: tender.briefing_mandatory === 1 },
     ]),
-    pricing_framework: `**PRICING SCHEDULE (Template Only — Complete with Actual Rates)**\n\n*This section must be completed with actual, carefully calculated rates based on the Bill of Quantities / Schedule of Rates provided in the tender document.*\n\n| Item | Description | Unit | Qty | Rate (R) | Amount (R) |\n|------|-------------|------|-----|----------|------------|\n| 1 | [Item from BoQ] | [unit] | [qty] | | |\n| 2 | [Item from BoQ] | [unit] | [qty] | | |\n| | **Subtotal** | | | | |\n| | VAT (15%) | | | | |\n| | **TOTAL BID PRICE** | | | | |\n\n*All prices in South African Rand (ZAR). Valid for 90 days from bid closing date.*`,
+    pricing_framework: `**PRICING SCHEDULE (Template Only: Complete with Actual Rates)**\n\n*This section must be completed with actual, carefully calculated rates based on the Bill of Quantities / Schedule of Rates provided in the tender document.*\n\n| Item | Description | Unit | Qty | Rate (R) | Amount (R) |\n|------|-------------|------|-----|----------|------------|\n| 1 | [Item from BoQ] | [unit] | [qty] | | |\n| 2 | [Item from BoQ] | [unit] | [qty] | | |\n| | **Subtotal** | | | | |\n| | VAT (15%) | | | | |\n| | **TOTAL BID PRICE** | | | | |\n\n*All prices in South African Rand (ZAR). Valid for 90 days from bid closing date.*`,
   };
 }

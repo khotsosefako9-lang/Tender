@@ -25,7 +25,7 @@ export default function PrivacyPage() {
               <strong>Khotso Sefako t/a Tenderpilot</strong><br />
               Gqeberha (Port Elizabeth), Eastern Cape, Republic of South Africa<br />
               Phone: +27 65 576 9100<br />
-              Email: khotso@tenderpilot.co.za
+              Email: khotsosefako0@gmail.com
             </p>
           </section>
 
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
               <li>Provinces of operation and business sectors</li>
               <li>Contract value preferences</li>
               <li>Compliance documents uploaded to your document vault (Tax Clearance, CIDB Certificate, etc.)</li>
-              <li>Payment information (processed by PayFast — we do not store card details)</li>
+              <li>Payment information (processed by PayFast; we do not store card details)</li>
             </ul>
             <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-2">2.2 Information Collected Automatically</h3>
             <ul className="list-disc pl-6 space-y-1">
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
               <li><strong>Right to object:</strong> Object to the processing of your personal information</li>
               <li><strong>Right to lodge a complaint:</strong> Lodge a complaint with the Information Regulator of South Africa</li>
             </ul>
-            <p>To exercise any of these rights, contact us at <a href="mailto:khotso@tenderpilot.co.za" className="text-brand-navy underline">khotso@tenderpilot.co.za</a>. We will respond within 30 days.</p>
+            <p>To exercise any of these rights, contact us at <a href="mailto:khotsosefako0@gmail.com" className="text-brand-navy underline">khotsosefako0@gmail.com</a>. We will respond within 30 days.</p>
             <p className="mt-2">The Information Regulator of South Africa can be contacted at:<br />
             <a href="https://www.justice.gov.za/inforeg/" className="text-brand-navy underline">www.justice.gov.za/inforeg</a> · inforeg@justice.gov.za</p>
           </section>

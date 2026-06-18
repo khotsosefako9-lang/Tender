@@ -13,16 +13,13 @@ export function HeroSection() {
       />
       <div className="relative max-w-5xl mx-auto text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-          <span className="inline-block bg-brand-amber/20 text-brand-amber text-sm font-semibold px-4 py-1.5 rounded-full mb-6 border border-brand-amber/30">
-            Eastern Cape's #1 Tender Intelligence Platform
-          </span>
           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight mb-6">
             Never Miss a<br />
             <span className="text-brand-amber">Government Tender</span><br />
             Again
           </h1>
           <p className="text-lg md:text-xl text-blue-200 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Tenderpilot monitors 100+ South African procurement portals daily, matches opportunities to your business profile, and generates your first draft bid document — automatically.
+            Tenderpilot monitors 100+ South African procurement portals daily, matches opportunities to your business profile, and generates your first draft bid document, automatically.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="xl" variant="amber">

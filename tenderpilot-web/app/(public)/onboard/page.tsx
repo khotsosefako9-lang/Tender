@@ -10,11 +10,11 @@ import { Check, ChevronRight, ChevronLeft } from "lucide-react";
 const STEPS = ["Personal Details", "Company Details", "CIDB Profile", "Contract Preferences", "Choose Plan", "Payment"];
 
 const CIDB_CLASSES = [
-  { id: "CE", label: "CE — Civil Engineering" },
-  { id: "GB", label: "GB — General Building" },
-  { id: "ME", label: "ME — Mechanical Engineering" },
-  { id: "EB", label: "EB — Electrical Engineering" },
-  { id: "SQ", label: "SQ — Specialist Works" },
+  { id: "CE", label: "CE: Civil Engineering" },
+  { id: "GB", label: "GB: General Building" },
+  { id: "ME", label: "ME: Mechanical Engineering" },
+  { id: "EB", label: "EB: Electrical Engineering" },
+  { id: "SQ", label: "SQ: Specialist Works" },
 ];
 
 const PROVINCES = [
@@ -349,7 +349,7 @@ function OnboardContent() {
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-sm text-amber-800 font-medium mb-1">Success Fee Disclosure</p>
                 <p className="text-xs text-amber-700 leading-relaxed">
-                  A <strong>2% success fee</strong> on the value of any tender awarded to you that appeared on Tenderpilot during your active subscription is payable to Tenderpilot. This is only payable on actually awarded and paid contracts — not on bids submitted. Full details in our Terms of Service.
+                  A <strong>2% success fee</strong> on the value of any tender awarded to you that appeared on Tenderpilot during your active subscription is payable to Tenderpilot. This is only payable on actually awarded and paid contracts, not on bids submitted. Full details in our Terms of Service.
                 </p>
               </div>
               <label className="flex items-start gap-3 cursor-pointer">
