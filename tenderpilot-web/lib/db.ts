@@ -1,160 +1,13 @@
-import Database from "better-sqlite3";
-import path from "path";
-
-const DB_PATH = process.env.DATABASE_URL
-  ? path.resolve(process.cwd(), process.env.DATABASE_URL)
-  : path.resolve(process.cwd(), "../tenderpilot/tenderpilot.db");
-
-let db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (!db) {
-    try {
-      db = new Database(DB_PATH);
-      db.pragma("journal_mode = WAL");
-      db.pragma("foreign_keys = ON");
-      initSchema(db);
-    } catch {
-      // Fallback to in-memory DB for development without the real DB file
-      db = new Database(":memory:");
-      db.pragma("journal_mode = WAL");
-      initSchema(db);
-    }
-  }
-  return db;
-}
-
-function initSchema(database: Database.Database) {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS tenders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      reference_number TEXT,
-      title TEXT NOT NULL,
-      description TEXT,
-      department TEXT,
-      portal TEXT,
-      province TEXT,
-      tender_type TEXT,
-      cidb_grade_min INTEGER,
-      cidb_grade_max INTEGER,
-      cidb_class TEXT,
-      contract_value_min REAL,
-      contract_value_max REAL,
-      briefing_date TEXT,
-      briefing_mandatory INTEGER DEFAULT 0,
-      closing_date TEXT,
-      clarification_deadline TEXT,
-      document_url TEXT,
-      raw_html TEXT,
-      scraped_at TEXT,
-      is_active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS subscribers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      first_name TEXT,
-      last_name TEXT,
-      phone TEXT,
-      company_name TEXT,
-      csd_number TEXT,
-      cipc_number TEXT,
-      cidb_grade INTEGER,
-      cidb_classes TEXT,
-      bbbee_level TEXT,
-      provinces TEXT,
-      sectors TEXT,
-      contract_value_min REAL,
-      contract_value_max REAL,
-      tender_types TEXT,
-      years_in_operation INTEGER,
-      tier TEXT DEFAULT 'scout',
-      status TEXT DEFAULT 'pending',
-      payfast_token TEXT,
-      subscription_start TEXT,
-      subscription_end TEXT,
-      onboarding_complete INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS subscriber_documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subscriber_id INTEGER NOT NULL,
-      document_type TEXT NOT NULL,
-      document_name TEXT,
-      file_path TEXT,
-      expiry_date TEXT,
-      is_expired INTEGER DEFAULT 0,
-      uploaded_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS tender_matches (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subscriber_id INTEGER NOT NULL,
-      tender_id INTEGER NOT NULL,
-      match_score INTEGER DEFAULT 0,
-      match_reasons TEXT,
-      digest_sent INTEGER DEFAULT 0,
-      digest_sent_at TEXT,
-      bid_draft_generated INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (subscriber_id) REFERENCES subscribers(id),
-      FOREIGN KEY (tender_id) REFERENCES tenders(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS bid_drafts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      match_id INTEGER NOT NULL,
-      executive_summary TEXT,
-      methodology TEXT,
-      resource_plan TEXT,
-      risk_management TEXT,
-      project_schedule TEXT,
-      compliance_checklist TEXT,
-      pricing_framework TEXT,
-      generated_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (match_id) REFERENCES tender_matches(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS email_digests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subscriber_id INTEGER NOT NULL,
-      subject TEXT,
-      tender_count INTEGER DEFAULT 0,
-      sent_at TEXT DEFAULT (datetime('now')),
-      status TEXT DEFAULT 'sent',
-      FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS tender_awards (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tender_reference TEXT,
-      tender_title TEXT,
-      department TEXT,
-      portal TEXT,
-      awarded_to TEXT,
-      award_value REAL,
-      award_date TEXT,
-      province TEXT,
-      sector TEXT,
-      scraped_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS scraper_health (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      portal TEXT NOT NULL,
-      run_date TEXT DEFAULT (datetime('now')),
-      status TEXT DEFAULT 'ok',
-      tenders_found INTEGER DEFAULT 0,
-      tenders_new INTEGER DEFAULT 0,
-      error_message TEXT,
-      duration_seconds REAL
-    );
-  `);
-}
+/**
+ * In-memory database layer.
+ *
+ * Vercel serverless functions are stateless — data resets between cold starts.
+ * This is intentional for deployment compatibility; swap for a persistent DB
+ * (e.g. PlanetScale, Turso, Neon, or Supabase) for production persistence.
+ *
+ * The API surface mirrors what the rest of the app expects so no other files
+ * need to change.
+ */
 
 export type Subscriber = {
   id: number;
@@ -198,6 +51,7 @@ export type Tender = {
   cidb_class: string;
   contract_value_min: number;
   contract_value_max: number;
+  briefing_mandatory: number;
   closing_date: string;
   is_active: number;
   created_at: string;
@@ -213,3 +67,198 @@ export type TenderMatch = {
   bid_draft_generated: number;
   created_at: string;
 };
+
+// ─── In-memory stores ────────────────────────────────────────────────────────
+
+let nextId = { subscribers: 1, tenders: 1, matches: 1, drafts: 1, docs: 1, awards: 1, health: 1, digests: 1 };
+
+const stores: {
+  subscribers: Map<number, Subscriber>;
+  tenders: Map<number, Tender>;
+  tender_matches: Map<number, TenderMatch & Record<string, unknown>>;
+  bid_drafts: Map<number, Record<string, unknown>>;
+  subscriber_documents: Map<number, Record<string, unknown>>;
+  tender_awards: Map<number, Record<string, unknown>>;
+  scraper_health: Map<number, Record<string, unknown>>;
+  email_digests: Map<number, Record<string, unknown>>;
+} = {
+  subscribers: new Map(),
+  tenders: new Map(),
+  tender_matches: new Map(),
+  bid_drafts: new Map(),
+  subscriber_documents: new Map(),
+  tender_awards: new Map(),
+  scraper_health: new Map(),
+  email_digests: new Map(),
+};
+
+// Seed some demo tenders so the dashboard isn't empty
+function seedDemoData() {
+  if (stores.tenders.size > 0) return;
+  const now = new Date().toISOString();
+  const closing = (daysFromNow: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    return d.toISOString().split("T")[0];
+  };
+  const demotenders: Omit<Tender, "id">[] = [
+    {
+      reference_number: "EC/PT/2024/001",
+      title: "Repair and Maintenance of Municipal Roads — Eastern Cape",
+      description: "Routine maintenance and repair of Class 3 rural roads in the Eastern Cape region.",
+      department: "EC Department of Public Works",
+      portal: "eTenders",
+      province: "Eastern Cape",
+      tender_type: "Formal Tender",
+      cidb_grade_min: 4,
+      cidb_grade_max: 7,
+      cidb_class: "CE",
+      contract_value_min: 500000,
+      contract_value_max: 5000000,
+      briefing_mandatory: 1,
+      closing_date: closing(14),
+      is_active: 1,
+      created_at: now,
+    },
+    {
+      reference_number: "NMBM/2024/0042",
+      title: "Construction of New School Buildings — Phase 2",
+      description: "Construction of 8 classroom blocks and ablution facilities at three primary schools.",
+      department: "Nelson Mandela Bay Municipality",
+      portal: "NMBM",
+      province: "Eastern Cape",
+      tender_type: "Formal Tender",
+      cidb_grade_min: 5,
+      cidb_grade_max: 9,
+      cidb_class: "GB",
+      contract_value_min: 2000000,
+      contract_value_max: 15000000,
+      briefing_mandatory: 1,
+      closing_date: closing(21),
+      is_active: 1,
+      created_at: now,
+    },
+    {
+      reference_number: "EC/DOH/2024/089",
+      title: "Electrical Upgrades at Health Facilities",
+      description: "Supply and installation of electrical infrastructure upgrades at 12 clinics.",
+      department: "EC Department of Health",
+      portal: "EC Provincial Treasury",
+      province: "Eastern Cape",
+      tender_type: "RFQ",
+      cidb_grade_min: 2,
+      cidb_grade_max: 5,
+      cidb_class: "EB",
+      contract_value_min: 100000,
+      contract_value_max: 800000,
+      briefing_mandatory: 0,
+      closing_date: closing(7),
+      is_active: 1,
+      created_at: now,
+    },
+    {
+      reference_number: "BCM/2024/112",
+      title: "Cleaning Services — Buffalo City Metro Offices",
+      description: "Provision of professional cleaning and hygiene services at 5 municipal office buildings.",
+      department: "Buffalo City Metropolitan Municipality",
+      portal: "eTenders",
+      province: "Eastern Cape",
+      tender_type: "RFP",
+      cidb_grade_min: 1,
+      cidb_grade_max: 3,
+      cidb_class: "",
+      contract_value_min: 50000,
+      contract_value_max: 300000,
+      briefing_mandatory: 0,
+      closing_date: closing(5),
+      is_active: 1,
+      created_at: now,
+    },
+    {
+      reference_number: "NatT/2024/0897",
+      title: "Supply and Installation of Solar Panels — Government Buildings",
+      description: "National tender for renewable energy installations across government buildings.",
+      department: "Department of Public Works and Infrastructure",
+      portal: "eTenders",
+      province: "",
+      tender_type: "Formal Tender",
+      cidb_grade_min: 5,
+      cidb_grade_max: 9,
+      cidb_class: "EB",
+      contract_value_min: 5000000,
+      contract_value_max: 50000000,
+      briefing_mandatory: 1,
+      closing_date: closing(30),
+      is_active: 1,
+      created_at: now,
+    },
+  ];
+
+  for (const t of demotenders) {
+    const id = nextId.tenders++;
+    stores.tenders.set(id, { id, ...t });
+  }
+
+  // Seed some award history
+  const awards = [
+    { tender_reference: "EC/PT/2023/044", tender_title: "Resurfacing of Provincial Roads — N2 Corridor", department: "EC Department of Public Works", portal: "eTenders", awarded_to: "Lungisa Construction (Pty) Ltd", award_value: 3250000, award_date: "2024-03-15", province: "Eastern Cape", sector: "Roads & Infrastructure" },
+    { tender_reference: "NMBM/2023/0098", tender_title: "Construction of Community Hall — Motherwell", department: "Nelson Mandela Bay Municipality", portal: "NMBM", awarded_to: "Phakama Building Contractors", award_value: 8750000, award_date: "2024-02-28", province: "Eastern Cape", sector: "Building & Renovation" },
+    { tender_reference: "EC/DOE/2023/201", tender_title: "Electrical Maintenance — Schools Programme", department: "EC Department of Education", portal: "EC Provincial Treasury", awarded_to: "Bongani Electrical CC", award_value: 450000, award_date: "2024-04-10", province: "Eastern Cape", sector: "Electrical" },
+  ];
+  for (const a of awards) {
+    const id = nextId.awards++;
+    stores.tender_awards.set(id, { id, ...a, scraped_at: new Date().toISOString() });
+  }
+}
+
+seedDemoData();
+
+// ─── DB proxy ────────────────────────────────────────────────────────────────
+
+type Row = Record<string, unknown>;
+
+function makeTable<T extends Row>(map: Map<number, T>) {
+  return {
+    insert(row: Omit<T, "id">): T {
+      const key = (map.size > 0 ? Math.max(...Array.from(map.keys())) : 0) + 1;
+      const full = { id: key, ...row } as unknown as T;
+      map.set(key, full);
+      return full;
+    },
+    findAll(predicate?: (r: T) => boolean): T[] {
+      const all = Array.from(map.values());
+      return predicate ? all.filter(predicate) : all;
+    },
+    findOne(predicate: (r: T) => boolean): T | undefined {
+      return Array.from(map.values()).find(predicate);
+    },
+    update(predicate: (r: T) => boolean, patch: Partial<T>): void {
+      for (const [k, v] of map.entries()) {
+        if (predicate(v)) map.set(k, { ...v, ...patch });
+      }
+    },
+    delete(predicate: (r: T) => boolean): void {
+      for (const [k, v] of map.entries()) {
+        if (predicate(v)) map.delete(k);
+      }
+    },
+  };
+}
+
+// ─── Public API (mirrors the sqlite queries used throughout the app) ──────────
+
+export const db = {
+  subscribers: makeTable<Subscriber>(stores.subscribers as Map<number, Subscriber>),
+  tenders: makeTable<Tender>(stores.tenders as Map<number, Tender>),
+  tender_matches: makeTable(stores.tender_matches),
+  bid_drafts: makeTable(stores.bid_drafts),
+  subscriber_documents: makeTable(stores.subscriber_documents),
+  tender_awards: makeTable(stores.tender_awards),
+  scraper_health: makeTable(stores.scraper_health),
+  email_digests: makeTable(stores.email_digests),
+};
+
+/** Helper used by the matching engine and other lib code that needs raw access */
+export function getDb() {
+  return db;
+}

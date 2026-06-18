@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,35 +13,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const db = getDb();
-    const existing = db.prepare("SELECT id FROM subscribers WHERE email = ?").get(email);
+    const existing = db.subscribers.findOne((s) => s.email === email);
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
     const password_hash = await bcrypt.hash(password, 12);
-    const cleanMin = contract_value_min ? Number(String(contract_value_min).replace(/,/g, "")) : null;
-    const cleanMax = contract_value_max ? Number(String(contract_value_max).replace(/,/g, "")) : null;
+    const cleanMin = contract_value_min ? Number(String(contract_value_min).replace(/,/g, "")) : 0;
+    const cleanMax = contract_value_max ? Number(String(contract_value_max).replace(/,/g, "")) : 0;
 
-    const result = db.prepare(`
-      INSERT INTO subscribers (email, password_hash, first_name, last_name, phone, company_name,
-        cipc_number, csd_number, bbbee_level, years_in_operation, cidb_grade, cidb_classes,
-        provinces, sectors, contract_value_min, contract_value_max, tender_types, tier, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `).run(
+    const subscriber = db.subscribers.insert({
       email, password_hash, first_name, last_name, phone, company_name,
-      cipc_number || null, csd_number || null, bbbee_level || null,
-      years_in_operation ? Number(years_in_operation) : null,
-      cidb_grade ? Number(cidb_grade) : null,
-      JSON.stringify(cidb_classes || []),
-      JSON.stringify(provinces || []),
-      JSON.stringify(sectors || []),
-      cleanMin, cleanMax,
-      JSON.stringify(tender_types || []),
-      plan || "scout"
-    );
+      cipc_number: cipc_number || "", csd_number: csd_number || "",
+      bbbee_level: bbbee_level || "", years_in_operation: years_in_operation ? Number(years_in_operation) : 0,
+      cidb_grade: cidb_grade ? Number(cidb_grade) : 0,
+      cidb_classes: JSON.stringify(cidb_classes || []),
+      provinces: JSON.stringify(provinces || []),
+      sectors: JSON.stringify(sectors || []),
+      contract_value_min: cleanMin, contract_value_max: cleanMax,
+      tender_types: JSON.stringify(tender_types || []),
+      tier: plan || "scout", status: "pending",
+      payfast_token: "", subscription_start: "", subscription_end: "",
+      onboarding_complete: 0, created_at: new Date().toISOString(),
+    });
 
-    return NextResponse.json({ success: true, subscriber_id: result.lastInsertRowid });
+    return NextResponse.json({ success: true, subscriber_id: subscriber.id });
   } catch (err) {
     console.error("Register error:", err);
     return NextResponse.json({ error: "Registration failed. Please try again." }, { status: 500 });

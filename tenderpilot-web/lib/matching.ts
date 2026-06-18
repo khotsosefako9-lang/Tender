@@ -51,24 +51,22 @@ export function calculateMatchScore(subscriber: Subscriber, tender: Tender): Mat
   // Contract value in range (+10)
   const min = subscriber.contract_value_min || 0;
   const max = subscriber.contract_value_max || Infinity;
-  const tenderMin = tender.contract_value_min || 0;
-  const tenderMax = tender.contract_value_max || 0;
-  const tenderValue = tenderMax || tenderMin;
+  const tenderValue = tender.contract_value_max || tender.contract_value_min || 0;
   if (tenderValue > 0 && tenderValue >= min && tenderValue <= max) {
     score += 10;
-    reasons.push(`Contract value R${formatCurrency(tenderValue)} within your range`);
+    reasons.push(`Contract value R${tenderValue.toLocaleString("en-ZA")} within your range`);
   } else if (!tenderValue) {
     score += 5;
     reasons.push("Contract value not specified");
   }
 
-  // Sector match (+15) — derived from description keywords
+  // Sector match (+15)
   const subSectors = tryParseArray(subscriber.sectors);
   const tenderText = `${tender.title} ${tender.description || ""}`.toLowerCase();
   const sectorKeywords: Record<string, string[]> = {
     "Roads & Infrastructure": ["road", "infrastructure", "bridge", "stormwater", "drainage"],
-    "Building & Renovation": ["building", "renovation", "construction", "refurb", "office"],
-    Electrical: ["electrical", "wiring", "substation", "solar"],
+    "Building & Renovation": ["building", "renovation", "construction", "refurb", "school", "office"],
+    Electrical: ["electrical", "wiring", "substation", "solar", "panel"],
     Plumbing: ["plumbing", "water", "pipe", "sanitation"],
     "Cleaning Services": ["cleaning", "hygiene", "janitorial"],
     Security: ["security", "guarding", "cctv", "access control"],
@@ -97,8 +95,4 @@ function tryParseArray(val: string | null | undefined): string[] {
   } catch {
     return val.split(",").map((s) => s.trim());
   }
-}
-
-function formatCurrency(val: number): string {
-  return val.toLocaleString("en-ZA");
 }

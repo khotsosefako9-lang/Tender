@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { getDb } from "./db";
+import { db } from "./db";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -25,12 +25,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Regular subscriber
-        const db = getDb();
-        const subscriber = db
-          .prepare("SELECT * FROM subscribers WHERE email = ?")
-          .get(credentials.email) as { id: number; email: string; password_hash: string; first_name: string; last_name: string; tier: string; status: string } | undefined;
-
+        const subscriber = db.subscribers.findOne((s) => s.email === credentials.email);
         if (!subscriber) return null;
+
         const valid = await bcrypt.compare(credentials.password, subscriber.password_hash);
         if (!valid) return null;
 

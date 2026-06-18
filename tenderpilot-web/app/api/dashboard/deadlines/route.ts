@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  const userId = (session.user as { id: string }).id;
 
-  const db = getDb();
-  const deadlines = db.prepare(`
-    SELECT t.id, t.title, t.department, t.closing_date, t.tender_type, tm.match_score
-    FROM tender_matches tm
-    JOIN tenders t ON tm.tender_id = t.id
-    WHERE tm.subscriber_id = ? AND t.is_active = 1 AND t.closing_date >= date('now')
-    ORDER BY t.closing_date ASC
-    LIMIT 20
-  `).all(userId);
+  const userId = Number((session.user as { id: string }).id);
+  const today = new Date().toISOString().split("T")[0];
+
+  const deadlines = db.tender_matches
+    .findAll((m) => m.subscriber_id === userId)
+    .map((m) => {
+      const tender = db.tenders.findOne((t) => t.id === m.tender_id);
+      return tender ? { ...tender, match_score: m.match_score } : null;
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null && t.is_active === 1 && (t.closing_date || "") >= today)
+    .sort((a, b) => (a.closing_date || "").localeCompare(b.closing_date || ""))
+    .slice(0, 20);
 
   return NextResponse.json({ deadlines });
 }

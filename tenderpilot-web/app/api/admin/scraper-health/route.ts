@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   const user = session?.user as { isAdmin?: boolean } | undefined;
   if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const db = getDb();
-  const health = db.prepare(`
-    SELECT sh.*, (
-      SELECT MAX(run_date) FROM scraper_health sh2 WHERE sh2.portal = sh.portal
-    ) as last_run
-    FROM scraper_health sh
-    WHERE sh.id IN (
-      SELECT MAX(id) FROM scraper_health GROUP BY portal
-    )
-    ORDER BY sh.portal
-  `).all();
+  // Return the most recent row per portal
+  const all = db.scraper_health.findAll();
+  const byPortal = new Map<string, typeof all[0]>();
+  for (const row of all) {
+    const portal = String(row.portal);
+    const existing = byPortal.get(portal);
+    if (!existing || String(row.run_date) > String(existing.run_date)) {
+      byPortal.set(portal, row);
+    }
+  }
 
-  return NextResponse.json({ health });
+  return NextResponse.json({ health: Array.from(byPortal.values()) });
 }

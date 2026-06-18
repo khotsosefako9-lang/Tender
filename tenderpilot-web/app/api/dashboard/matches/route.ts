@@ -1,28 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  const userId = (session.user as { id: string }).id;
-  if (userId === "admin") return NextResponse.json({ matches: [] });
+  const userId = Number((session.user as { id: string }).id);
+  if (!userId) return NextResponse.json({ matches: [] });
 
-  const db = getDb();
-  const matches = db.prepare(`
-    SELECT tm.id, tm.match_score, tm.match_reasons, tm.bid_draft_generated, tm.created_at,
-           t.id as tender_id, t.title, t.department, t.closing_date, t.tender_type,
-           t.contract_value_max, t.province, t.reference_number,
-           bd.id as draft_id
-    FROM tender_matches tm
-    JOIN tenders t ON tm.tender_id = t.id
-    LEFT JOIN bid_drafts bd ON bd.match_id = tm.id
-    WHERE tm.subscriber_id = ? AND t.is_active = 1
-    ORDER BY tm.created_at DESC
-    LIMIT 10
-  `).all(userId);
+  const matches = db.tender_matches
+    .findAll((m) => m.subscriber_id === userId)
+    .sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())
+    .slice(0, 10)
+    .map((m) => {
+      const tender = db.tenders.findOne((t) => t.id === m.tender_id);
+      const draft = db.bid_drafts.findOne((d) => d.match_id === m.id);
+      return {
+        ...m,
+        title: tender?.title ?? "Unknown Tender",
+        department: tender?.department ?? "",
+        closing_date: tender?.closing_date ?? "",
+        tender_type: tender?.tender_type ?? "Tender",
+        contract_value_max: tender?.contract_value_max ?? 0,
+        province: tender?.province ?? "",
+        reference_number: tender?.reference_number ?? "",
+        draft_id: draft ? draft.id : null,
+      };
+    });
 
   return NextResponse.json({ matches });
 }

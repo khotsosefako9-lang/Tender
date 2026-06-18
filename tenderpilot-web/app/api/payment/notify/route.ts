@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyITN } from "@/lib/payfast";
 import { sendWelcomeEmail } from "@/lib/email";
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const params: Record<string, string> = {};
     text.split("&").forEach((pair) => {
       const [k, v] = pair.split("=");
-      params[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, " "));
+      params[decodeURIComponent(k)] = decodeURIComponent((v || "").replace(/\+/g, " "));
     });
 
     const valid = verifyITN(params);
@@ -17,27 +17,26 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Invalid signature", { status: 400 });
     }
 
-    const subscriberId = params.custom_int1;
+    const subscriberId = Number(params.custom_int1);
     const tier = params.custom_str1;
     const paymentStatus = params.payment_status;
-    const payfastToken = params.token || null;
+    const payfastToken = params.token || "";
 
     if (paymentStatus === "COMPLETE" && subscriberId) {
-      const db = getDb();
       const today = new Date().toISOString().split("T")[0];
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      db.prepare(`
-        UPDATE subscribers
-        SET status = 'active', tier = ?, payfast_token = ?,
-            subscription_start = ?, subscription_end = ?, onboarding_complete = 1
-        WHERE id = ?
-      `).run(tier || "scout", payfastToken, today, nextMonth.toISOString().split("T")[0], subscriberId);
+      db.subscribers.update((s) => s.id === subscriberId, {
+        status: "active",
+        tier: tier || "scout",
+        payfast_token: payfastToken,
+        subscription_start: today,
+        subscription_end: nextMonth.toISOString().split("T")[0],
+        onboarding_complete: 1,
+      });
 
-      const subscriber = db.prepare("SELECT * FROM subscribers WHERE id = ?").get(subscriberId) as {
-        email: string; first_name: string; tier: string;
-      } | undefined;
+      const subscriber = db.subscribers.findOne((s) => s.id === subscriberId);
       if (subscriber) {
         await sendWelcomeEmail(subscriber).catch(console.error);
       }
