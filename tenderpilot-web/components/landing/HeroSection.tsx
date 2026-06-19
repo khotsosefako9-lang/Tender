@@ -13,6 +13,9 @@ export function HeroSection() {
       />
       <div className="relative max-w-5xl mx-auto text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+          <div className="inline-flex items-center gap-2 bg-brand-amber/20 border border-brand-amber/40 rounded-full px-4 py-1.5 mb-6">
+            <span className="text-brand-amber text-sm font-semibold">South Africa's Leading Tender Intelligence Platform</span>
+          </div>
           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight mb-6">
             Never Miss a<br />
             <span className="text-brand-amber">Government Tender</span><br />
