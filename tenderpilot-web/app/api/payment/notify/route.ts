@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      db.subscribers.update((s) => s.id === subscriberId, {
+      await db.subscribers.update((s) => s.id === subscriberId, {
         status: "active",
         tier: tier || "scout",
         payfast_token: payfastToken,
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         onboarding_complete: 1,
       });
 
-      const subscriber = db.subscribers.findOne((s) => s.id === subscriberId);
+      const subscriber = await db.subscribers.findOne((s) => s.id === subscriberId);
       if (subscriber) {
         await sendWelcomeEmail(subscriber).catch(console.error);
       }

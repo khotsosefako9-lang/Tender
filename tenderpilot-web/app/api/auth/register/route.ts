@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const existing = db.subscribers.findOne((s) => s.email === email);
+    const existing = await db.subscribers.findOne((s) => s.email === email);
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const cleanMin = contract_value_min ? Number(String(contract_value_min).replace(/,/g, "")) : 0;
     const cleanMax = contract_value_max ? Number(String(contract_value_max).replace(/,/g, "")) : 0;
 
-    const subscriber = db.subscribers.insert({
+    const subscriber = await db.subscribers.insert({
       email, password_hash, first_name, last_name, phone, company_name,
       cipc_number: cipc_number || "", csd_number: csd_number || "",
       bbbee_level: bbbee_level || "", years_in_operation: years_in_operation ? Number(years_in_operation) : 0,

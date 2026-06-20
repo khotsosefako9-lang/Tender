@@ -16,7 +16,7 @@ export async function POST(_req: NextRequest) {
     const newOnes = Math.floor(Math.random() * 10);
     const duration = Number((Math.random() * 30 + 5).toFixed(1));
 
-    db.scraper_health.insert({
+    await db.scraper_health.insert({
       portal,
       run_date: now,
       status: "ok",

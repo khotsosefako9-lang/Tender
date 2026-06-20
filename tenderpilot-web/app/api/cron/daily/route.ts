@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   const results = { subscribers: 0, matches: 0, drafts: 0, digests: 0, errors: [] as string[] };
 
   try {
-    const tenders = db.tenders.findAll((t) => t.is_active === 1);
-    const subscribers = db.subscribers.findAll((s) => s.status === "active");
+    const tenders = await db.tenders.findAll((t) => t.is_active === 1);
+    const subscribers = await db.subscribers.findAll((s) => s.status === "active");
 
     results.subscribers = subscribers.length;
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       const newMatches: Array<{ title: string; department: string; closing_date: string; match_score: number; tender_type: string }> = [];
 
       for (const tender of tenders) {
-        const alreadyMatched = db.tender_matches.findOne(
+        const alreadyMatched = await db.tender_matches.findOne(
           (m) => m.subscriber_id === subscriber.id && m.tender_id === tender.id
         );
         if (alreadyMatched) continue;
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         const { score, reasons } = calculateMatchScore(subscriber, tender);
         if (score >= 40) {
           const now = new Date().toISOString();
-          const match = db.tender_matches.insert({
+          const match = await db.tender_matches.insert({
             subscriber_id: subscriber.id,
             tender_id: tender.id,
             match_score: score,
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
 
           if (subscriber.tier === "bid" || subscriber.tier === "pro") {
             const draft = generateBidDraft(tender, subscriber);
-            db.bid_drafts.insert({ match_id: match.id, ...draft, generated_at: now } as never);
-            db.tender_matches.update((m) => m.id === match.id, { bid_draft_generated: 1 });
+            await db.bid_drafts.insert({ match_id: match.id, ...draft, generated_at: now } as never);
+            await db.tender_matches.update((m) => m.id === match.id, { bid_draft_generated: 1 });
             results.drafts++;
           }
         }
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       if (newMatches.length > 0) {
         try {
           await sendDigestEmail(subscriber, newMatches);
-          db.email_digests.insert({
+          await db.email_digests.insert({
             subscriber_id: subscriber.id,
             subject: `Tenderpilot Daily Digest: ${newMatches.length} new matches`,
             tender_count: newMatches.length,

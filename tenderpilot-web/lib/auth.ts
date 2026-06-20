@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Regular subscriber
-        const subscriber = db.subscribers.findOne((s) => s.email === credentials.email);
+        const subscriber = await db.subscribers.findOne((s) => s.email === credentials.email);
         if (!subscriber) return null;
 
         const valid = await bcrypt.compare(credentials.password, subscriber.password_hash);

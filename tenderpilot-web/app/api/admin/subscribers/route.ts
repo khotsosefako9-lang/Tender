@@ -8,8 +8,7 @@ export async function GET(_req: NextRequest) {
   const user = session?.user as { isAdmin?: boolean } | undefined;
   if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const subscribers = db.subscribers
-    .findAll()
+  const subscribers = (await db.subscribers.findAll())
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map(({ password_hash: _, ...s }) => s);
 

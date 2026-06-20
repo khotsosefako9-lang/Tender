@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // On Vercel, file system writes are not persistent; store metadata only
     const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
 
-    db.subscriber_documents.insert({
+    await db.subscriber_documents.insert({
       subscriber_id: userId,
       document_type: documentType,
       document_name: file.name,

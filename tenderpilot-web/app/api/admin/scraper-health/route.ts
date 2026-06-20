@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest) {
   if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Return the most recent row per portal
-  const all = db.scraper_health.findAll();
+  const all = await db.scraper_health.findAll();
   const byPortal = new Map<string, typeof all[0]>();
   for (const row of all) {
     const portal = String(row.portal);

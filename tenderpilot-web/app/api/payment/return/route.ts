@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   let name = "";
   let tier = "scout";
   if (subscriberId) {
-    const subscriber = db.subscribers.findOne((s) => s.id === subscriberId);
+    const subscriber = await db.subscribers.findOne((s) => s.id === subscriberId);
     if (subscriber) { name = subscriber.first_name; tier = subscriber.tier; }
   }
 

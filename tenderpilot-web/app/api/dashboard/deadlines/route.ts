@@ -10,12 +10,16 @@ export async function GET(_req: NextRequest) {
   const userId = Number((session.user as { id: string }).id);
   const today = new Date().toISOString().split("T")[0];
 
-  const deadlines = db.tender_matches
-    .findAll((m) => m.subscriber_id === userId)
-    .map((m) => {
-      const tender = db.tenders.findOne((t) => t.id === m.tender_id);
-      return tender ? { ...tender, match_score: m.match_score } : null;
-    })
+  const rawMatches = await db.tender_matches.findAll((m) => m.subscriber_id === userId);
+
+  const deadlines = (
+    await Promise.all(
+      rawMatches.map(async (m) => {
+        const tender = await db.tenders.findOne((t) => t.id === m.tender_id);
+        return tender ? { ...tender, match_score: m.match_score } : null;
+      })
+    )
+  )
     .filter((t): t is NonNullable<typeof t> => t !== null && t.is_active === 1 && (t.closing_date || "") >= today)
     .sort((a, b) => (a.closing_date || "").localeCompare(b.closing_date || ""))
     .slice(0, 20);

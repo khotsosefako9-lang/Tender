@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
   if (!matchId) return NextResponse.json({ error: "match_id required" }, { status: 400 });
 
   const userId = Number((session.user as { id: string }).id);
-  const match = db.tender_matches.findOne((m) => m.id === matchId && m.subscriber_id === userId);
+  const match = await db.tender_matches.findOne((m) => m.id === matchId && m.subscriber_id === userId);
   if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
-  const draft = db.bid_drafts.findOne((d) => d.match_id === matchId);
+  const draft = await db.bid_drafts.findOne((d) => d.match_id === matchId);
   if (!draft) return NextResponse.json({ error: "No draft available" }, { status: 404 });
 
   return NextResponse.json({ draft });

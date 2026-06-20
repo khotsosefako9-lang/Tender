@@ -12,8 +12,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: "Pro subscription required" }, { status: 403 });
   }
 
-  const awards = db.tender_awards
-    .findAll()
+  const awards = (await db.tender_awards.findAll())
     .sort((a, b) => String(b.award_date || "").localeCompare(String(a.award_date || "")))
     .slice(0, 20);
 

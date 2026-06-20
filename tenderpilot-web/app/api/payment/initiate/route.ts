@@ -18,12 +18,12 @@ export async function POST(req: NextRequest) {
     const cleanMax = contract_value_max ? Number(String(contract_value_max).replace(/,/g, "")) : 0;
     const password_hash = await bcrypt.hash(password, 12);
 
-    const existing = db.subscribers.findOne((s) => s.email === email);
+    const existing = await db.subscribers.findOne((s) => s.email === email);
     let subscriberId: number;
 
     if (existing) {
       subscriberId = existing.id;
-      db.subscribers.update((s) => s.id === subscriberId, {
+      await db.subscribers.update((s) => s.id === subscriberId, {
         first_name, last_name, phone, company_name,
         cipc_number: cipc_number || "", csd_number: csd_number || "",
         bbbee_level: bbbee_level || "", years_in_operation: years_in_operation ? Number(years_in_operation) : 0,
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         tier: plan || "scout", status: "pending", password_hash,
       });
     } else {
-      const subscriber = db.subscribers.insert({
+      const subscriber = await db.subscribers.insert({
         email, password_hash, first_name, last_name, phone, company_name,
         cipc_number: cipc_number || "", csd_number: csd_number || "",
         bbbee_level: bbbee_level || "", years_in_operation: years_in_operation ? Number(years_in_operation) : 0,
