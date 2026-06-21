@@ -2,7 +2,7 @@
  * Supabase database layer. All methods are async.
  * API surface mirrors the previous in-memory store so call sites only need await added.
  */
-import { supabase } from "./supabase";
+import { getSupabaseClient } from "./supabase";
 
 export type Subscriber = {
   id: number;
@@ -71,42 +71,42 @@ function makeTable<T extends AnyRow>(tableName: string) {
   return {
     async insert(row: Omit<T, "id">): Promise<T> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await supabase.from(tableName).insert(row as any).select().single();
+      const { data, error } = await getSupabaseClient().from(tableName).insert(row as any).select().single();
       if (error) throw new Error(`[db.${tableName}.insert] ${error.message}`);
       return data as T;
     },
 
     async findAll(predicate?: (r: T) => boolean): Promise<T[]> {
-      const { data, error } = await supabase.from(tableName).select("*");
+      const { data, error } = await getSupabaseClient().from(tableName).select("*");
       if (error) throw new Error(`[db.${tableName}.findAll] ${error.message}`);
       const rows = (data ?? []) as T[];
       return predicate ? rows.filter(predicate) : rows;
     },
 
     async findOne(predicate: (r: T) => boolean): Promise<T | undefined> {
-      const { data, error } = await supabase.from(tableName).select("*");
+      const { data, error } = await getSupabaseClient().from(tableName).select("*");
       if (error) throw new Error(`[db.${tableName}.findOne] ${error.message}`);
       return ((data ?? []) as T[]).find(predicate);
     },
 
     async update(predicate: (r: T) => boolean, patch: Partial<T>): Promise<void> {
-      const { data, error } = await supabase.from(tableName).select("*");
+      const { data, error } = await getSupabaseClient().from(tableName).select("*");
       if (error) throw new Error(`[db.${tableName}.update] ${error.message}`);
       const matches = ((data ?? []) as T[]).filter(predicate);
       for (const row of matches) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: updateError } = await supabase.from(tableName).update(patch as any).eq("id", (row as unknown as { id: number }).id);
+        const { error: updateError } = await getSupabaseClient().from(tableName).update(patch as any).eq("id", (row as unknown as { id: number }).id);
         if (updateError) throw new Error(`[db.${tableName}.update] ${updateError.message}`);
       }
     },
 
     async delete(predicate: (r: T) => boolean): Promise<void> {
-      const { data, error } = await supabase.from(tableName).select("id");
+      const { data, error } = await getSupabaseClient().from(tableName).select("id");
       if (error) throw new Error(`[db.${tableName}.delete] ${error.message}`);
       const matches = ((data ?? []) as T[]).filter(predicate);
       for (const row of matches) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await supabase.from(tableName).delete().eq("id", (row as unknown as { id: number }).id);
+        await getSupabaseClient().from(tableName).delete().eq("id", (row as unknown as { id: number }).id);
       }
     },
   };
