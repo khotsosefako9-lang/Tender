@@ -11,6 +11,7 @@ import { Users, TrendingUp, AlertCircle, RefreshCw, LogOut, CheckCircle2 } from 
 type Stats = { total: number; byTier: { tier: string; n: number }[]; newThisWeek: number; mrr: number };
 type Subscriber = { id: number; email: string; first_name: string; last_name: string; company_name: string; tier: string; cidb_grade: number; status: string; created_at: string };
 type HealthRow = { id: number; portal: string; run_date: string; status: string; tenders_found: number; tenders_new: number; error_message: string | null; duration_seconds: number };
+type ScrapeResult = { success: boolean; total_found: number; total_new: number; matches_created: number; errors: string[]; portals: HealthRow[] };
 
 export default function AdminPage() {
   const { data: session } = useSession();
@@ -19,6 +20,7 @@ export default function AdminPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [health, setHealth] = useState<HealthRow[]>([]);
   const [triggering, setTriggering] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const load = () => {
@@ -31,8 +33,16 @@ export default function AdminPage() {
 
   const triggerScrape = async () => {
     setTriggering(true);
-    await fetch("/api/admin/trigger-scrape", { method: "POST" });
-    setTimeout(() => { load(); setTriggering(false); }, 3000);
+    setScrapeResult(null);
+    try {
+      const res = await fetch("/api/admin/scrape", { method: "POST" });
+      const data = await res.json();
+      setScrapeResult(data);
+    } catch {
+      setScrapeResult(null);
+    }
+    load();
+    setTriggering(false);
   };
 
   const tierColor: Record<string, string> = { scout: "default", bid: "info", pro: "warning" };
@@ -52,13 +62,24 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-brand-navy">Admin Dashboard</h1>
           <Button onClick={triggerScrape} disabled={triggering} variant="amber" className="gap-2">
             <RefreshCw className={`h-4 w-4 ${triggering ? "animate-spin" : ""}`} />
-            {triggering ? "Running..." : "Trigger Scraper Run"}
+            {triggering ? "Scraping portals..." : "Run Scraper Now"}
           </Button>
         </div>
+
+        {/* Scrape result banner */}
+        {scrapeResult && (
+          <div className={`mb-6 p-4 rounded-xl border text-sm flex flex-wrap gap-4 items-center ${scrapeResult.errors?.length ? "bg-amber-50 border-amber-200 text-amber-900" : "bg-green-50 border-green-200 text-green-900"}`}>
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <span><strong>Scrape complete.</strong> {scrapeResult.total_found} tenders found across portals, <strong>{scrapeResult.total_new} new</strong> added to database, <strong>{scrapeResult.matches_created} subscriber matches</strong> created.</span>
+            {scrapeResult.errors?.length > 0 && (
+              <span className="text-amber-700 text-xs">Warnings: {scrapeResult.errors.join(" | ")}</span>
+            )}
+          </div>
+        )}
 
         {/* Stats */}
         {stats && (

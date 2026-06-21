@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { runFullScrape } from "@/lib/scraper";
 
-export const maxDuration = 60;
+export const maxDuration = 60; // Vercel Pro: up to 60s; Hobby: 10s
 
 export async function POST(_req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,13 +12,9 @@ export async function POST(_req: NextRequest) {
 
   try {
     const summary = await runFullScrape();
-    return NextResponse.json({
-      success: true,
-      message: `Scrape complete: ${summary.total_new} new tenders, ${summary.matches_created} matches created`,
-      ...summary,
-    });
+    return NextResponse.json({ success: true, ...summary });
   } catch (err) {
-    console.error("[trigger-scrape] error:", err);
+    console.error("[scrape] unexpected error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
