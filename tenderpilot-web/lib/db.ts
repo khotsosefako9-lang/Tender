@@ -39,7 +39,7 @@ export type Tender = {
   description: string;
   department: string;
   portal: string;
-  province: string;
+  province: string | null;
   tender_type: string;
   cidb_grade_min: number;
   cidb_grade_max: number;
@@ -76,11 +76,42 @@ function makeTable<T extends AnyRow>(tableName: string) {
       return data as T;
     },
 
+    /** Upsert by a single unique column (server-side); requires UNIQUE constraint on that column. */
+    async upsertByColumn(row: Omit<T, "id">, conflictColumn: string): Promise<{ row: T; isNew: boolean }> {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const colValue = (row as any)[conflictColumn];
+      const { data: existing } = await getSupabaseClient()
+        .from(tableName)
+        .select("*")
+        .eq(conflictColumn, colValue)
+        .maybeSingle();
+
+      if (existing) {
+        return { row: existing as T, isNew: false };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await getSupabaseClient().from(tableName).insert(row as any).select().single();
+      if (error) throw new Error(`[db.${tableName}.upsertByColumn] ${error.message}`);
+      return { row: data as T, isNew: true };
+    },
+
     async findAll(predicate?: (r: T) => boolean): Promise<T[]> {
       const { data, error } = await getSupabaseClient().from(tableName).select("*");
       if (error) throw new Error(`[db.${tableName}.findAll] ${error.message}`);
       const rows = (data ?? []) as T[];
       return predicate ? rows.filter(predicate) : rows;
+    },
+
+    /** Efficient server-side equality lookup on a single column. */
+    async findOneWhere(column: string, value: string | number): Promise<T | undefined> {
+      const { data, error } = await getSupabaseClient()
+        .from(tableName)
+        .select("*")
+        .eq(column, value)
+        .maybeSingle();
+      if (error) throw new Error(`[db.${tableName}.findOneWhere] ${error.message}`);
+      return (data ?? undefined) as T | undefined;
     },
 
     async findOne(predicate: (r: T) => boolean): Promise<T | undefined> {
@@ -100,6 +131,13 @@ function makeTable<T extends AnyRow>(tableName: string) {
       }
     },
 
+    /** Update a single row by its numeric id. */
+    async updateById(id: number, patch: Partial<T>): Promise<void> {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await getSupabaseClient().from(tableName).update(patch as any).eq("id", id);
+      if (error) throw new Error(`[db.${tableName}.updateById] ${error.message}`);
+    },
+
     async delete(predicate: (r: T) => boolean): Promise<void> {
       const { data, error } = await getSupabaseClient().from(tableName).select("id");
       if (error) throw new Error(`[db.${tableName}.delete] ${error.message}`);
@@ -108,6 +146,12 @@ function makeTable<T extends AnyRow>(tableName: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await getSupabaseClient().from(tableName).delete().eq("id", (row as unknown as { id: number }).id);
       }
+    },
+
+    async truncate(): Promise<void> {
+      // Delete all rows by filtering on id > 0 (works without RLS issues)
+      const { error } = await getSupabaseClient().from(tableName).delete().gt("id", 0);
+      if (error) throw new Error(`[db.${tableName}.truncate] ${error.message}`);
     },
   };
 }

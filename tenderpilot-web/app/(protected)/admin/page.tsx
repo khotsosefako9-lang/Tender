@@ -31,11 +31,12 @@ export default function AdminPage() {
 
   useEffect(() => { load(); }, []);
 
-  const triggerScrape = async () => {
+  const triggerScrape = async (reset = false) => {
     setTriggering(true);
     setScrapeResult(null);
     try {
-      const res = await fetch("/api/admin/scrape", { method: "POST" });
+      const url = reset ? "/api/admin/scrape?reset=true" : "/api/admin/scrape";
+      const res = await fetch(url, { method: "POST" });
       const data = await res.json();
       setScrapeResult(data);
     } catch {
@@ -64,10 +65,16 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-brand-navy">Admin Dashboard</h1>
-          <Button onClick={triggerScrape} disabled={triggering} variant="amber" className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${triggering ? "animate-spin" : ""}`} />
-            {triggering ? "Scraping portals..." : "Run Scraper Now"}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => triggerScrape(false)} disabled={triggering} variant="amber" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${triggering ? "animate-spin" : ""}`} />
+              {triggering ? "Scraping..." : "Run Scraper"}
+            </Button>
+            <Button onClick={() => triggerScrape(true)} disabled={triggering} variant="ghost" className="gap-2 text-red-600 border border-red-200 hover:bg-red-50">
+              <RefreshCw className="h-4 w-4" />
+              Reset &amp; Rescrape
+            </Button>
+          </div>
         </div>
 
         {/* Scrape result banner */}

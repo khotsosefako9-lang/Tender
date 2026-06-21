@@ -92,3 +92,13 @@ export function parseSaDate(raw: string): string {
 export function clean(s: string | undefined | null): string {
   return (s ?? "").replace(/\s+/g, " ").trim();
 }
+
+// Drupal Views renders null taxonomy fields as these sentinel strings
+const EMPTY_SENTINELS = new Set(["EMPTY", "N/A", "n/a", "-", "—", "null", "undefined", "None"]);
+
+/** Return null if the value is empty/sentinel, otherwise return the cleaned string. */
+export function cleanOrNull(s: string | undefined | null): string | null {
+  const cleaned = clean(s);
+  if (!cleaned || EMPTY_SENTINELS.has(cleaned)) return null;
+  return cleaned;
+}

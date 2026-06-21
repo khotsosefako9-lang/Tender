@@ -4,7 +4,7 @@ export type ScrapedTender = {
   description: string;
   department: string;
   portal: string;
-  province: string;
+  province: string | null;
   tender_type: string;
   cidb_grade_min: number;
   cidb_grade_max: number;

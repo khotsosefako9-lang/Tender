@@ -14,6 +14,7 @@ import {
   detectContractValue,
   parseSaDate,
   clean,
+  cleanOrNull,
 } from "./parse-helpers";
 
 const BASE = "https://etenders.treasury.gov.za";
@@ -83,7 +84,7 @@ export async function scrapeEtenders(): Promise<ScrapedTender[]> {
         description: titleCell,
         department,
         portal: "eTenders",
-        province: province || "Eastern Cape",
+        province: cleanOrNull(province) ?? "Eastern Cape",
         tender_type: tenderTypeRaw ? clean(tenderTypeRaw) : detectTenderType(combined),
         cidb_grade_min: gradeMin,
         cidb_grade_max: gradeMax,

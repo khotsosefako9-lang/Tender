@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getSupabaseClient } from "@/lib/supabase";
 import { calculateMatchScore } from "@/lib/matching";
 import { scrapeEtendersSearch } from "./etenders";
 import { scrapeNmbm } from "./nmbm";
@@ -16,13 +17,12 @@ export type ScrapeRunSummary = {
 
 /** Upsert a scraped tender by reference_number; return true if it was new. */
 async function upsertTender(scraped: ScrapedTender): Promise<{ tender: Tender; isNew: boolean }> {
-  const existing = await db.tenders.findOne(
-    (t) => t.reference_number === scraped.reference_number
-  );
+  // Use server-side eq lookup — avoids full table scan on every call
+  const existing = await db.tenders.findOneWhere("reference_number", scraped.reference_number);
 
   if (existing) {
     // Update closing date and active status in case they changed
-    await db.tenders.update((t) => t.id === existing.id, {
+    await db.tenders.updateById(existing.id, {
       closing_date: scraped.closing_date || existing.closing_date,
       is_active: 1,
     });
@@ -42,25 +42,29 @@ async function matchTender(tender: Tender, subscribers: Subscriber[]): Promise<n
   let matchCount = 0;
 
   for (const subscriber of subscribers) {
-    const alreadyMatched = await db.tender_matches.findOne(
-      (m) => m.subscriber_id === subscriber.id && m.tender_id === tender.id
-    );
-    if (alreadyMatched) continue;
-
     const { score, reasons } = calculateMatchScore(subscriber, tender);
-    if (score >= 40) {
-      await db.tender_matches.insert({
-        subscriber_id: subscriber.id,
-        tender_id: tender.id,
-        match_score: score,
-        match_reasons: JSON.stringify(reasons),
-        digest_sent: 0,
-        digest_sent_at: "",
-        bid_draft_generated: 0,
-        created_at: new Date().toISOString(),
-      });
-      matchCount++;
-    }
+    if (score < 40) continue;
+
+    // Check dedup with server-side filter to avoid full table scan
+    const { data: existingMatch } = await getSupabaseClient()
+      .from("tender_matches")
+      .select("id")
+      .eq("subscriber_id", subscriber.id)
+      .eq("tender_id", tender.id)
+      .maybeSingle();
+    if (existingMatch) continue;
+
+    await db.tender_matches.insert({
+      subscriber_id: subscriber.id,
+      tender_id: tender.id,
+      match_score: score,
+      match_reasons: JSON.stringify(reasons),
+      digest_sent: 0,
+      digest_sent_at: "",
+      bid_draft_generated: 0,
+      created_at: new Date().toISOString(),
+    });
+    matchCount++;
   }
   return matchCount;
 }
@@ -84,26 +88,29 @@ export async function runAllMatching(includeAllStatuses = false): Promise<Matchi
 
   for (const tender of tenders) {
     for (const subscriber of subscribers) {
-      const alreadyMatched = await db.tender_matches.findOne(
-        (m) => m.subscriber_id === subscriber.id && m.tender_id === tender.id
-      );
-      if (alreadyMatched) continue;
-
       const { score, reasons } = calculateMatchScore(subscriber, tender);
-      if (score >= 40) {
-        await db.tender_matches.insert({
-          subscriber_id: subscriber.id,
-          tender_id: tender.id,
-          match_score: score,
-          match_reasons: JSON.stringify(reasons),
-          digest_sent: 0,
-          digest_sent_at: "",
-          bid_draft_generated: 0,
-          created_at: new Date().toISOString(),
-        });
-        matchesCreated++;
-        details.push({ subscriber_id: subscriber.id, email: subscriber.email, tender_id: tender.id, title: tender.title, score, reasons });
-      }
+      if (score < 40) continue;
+
+      const { data: existingMatch } = await getSupabaseClient()
+        .from("tender_matches")
+        .select("id")
+        .eq("subscriber_id", subscriber.id)
+        .eq("tender_id", tender.id)
+        .maybeSingle();
+      if (existingMatch) continue;
+
+      await db.tender_matches.insert({
+        subscriber_id: subscriber.id,
+        tender_id: tender.id,
+        match_score: score,
+        match_reasons: JSON.stringify(reasons),
+        digest_sent: 0,
+        digest_sent_at: "",
+        bid_draft_generated: 0,
+        created_at: new Date().toISOString(),
+      });
+      matchesCreated++;
+      details.push({ subscriber_id: subscriber.id, email: subscriber.email, tender_id: tender.id, title: tender.title, score, reasons });
     }
   }
 
@@ -177,8 +184,8 @@ export async function runFullScrape(): Promise<ScrapeRunSummary> {
     if (result.error_message) errors.push(`${name}: ${result.error_message}`);
   }
 
-  // Run matching for all active tenders (not just new ones) against active subscribers
-  const subscribers = await db.subscribers.findAll((s) => s.status === "active");
+  // Run matching for all active tenders against active + pending subscribers
+  const subscribers = await db.subscribers.findAll((s) => s.status === "active" || s.status === "pending");
   const allActiveTenders = await db.tenders.findAll((t) => t.is_active === 1);
   let matchesCreated = 0;
   for (const tender of allActiveTenders) {
