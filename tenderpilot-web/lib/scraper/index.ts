@@ -4,7 +4,7 @@ import { scrapeEtendersSearch } from "./etenders";
 import { scrapeNmbm } from "./nmbm";
 import { scrapeEcTreasury } from "./ec-treasury";
 import type { ScrapedTender, PortalResult } from "./types";
-import type { Tender } from "@/lib/db";
+import type { Tender, Subscriber } from "@/lib/db";
 
 export type ScrapeRunSummary = {
   portals: PortalResult[];
@@ -37,9 +37,8 @@ async function upsertTender(scraped: ScrapedTender): Promise<{ tender: Tender; i
   return { tender, isNew: true };
 }
 
-/** Run matching for a newly inserted tender against all active subscribers. */
-async function matchTender(tender: Tender): Promise<number> {
-  const subscribers = await db.subscribers.findAll((s) => s.status === "active");
+/** Run matching for a tender against subscribers. */
+async function matchTender(tender: Tender, subscribers: Subscriber[]): Promise<number> {
   let matchCount = 0;
 
   for (const subscriber of subscribers) {
@@ -64,6 +63,51 @@ async function matchTender(tender: Tender): Promise<number> {
     }
   }
   return matchCount;
+}
+
+export type MatchingSummary = {
+  tenders_checked: number;
+  subscribers_checked: number;
+  matches_created: number;
+  details: { subscriber_id: number; email: string; tender_id: number; title: string; score: number; reasons: string[] }[];
+};
+
+/** Run matching for all active tenders against all subscribers (for admin use). */
+export async function runAllMatching(includeAllStatuses = false): Promise<MatchingSummary> {
+  const tenders = await db.tenders.findAll((t) => t.is_active === 1);
+  const subscribers = await db.subscribers.findAll(
+    includeAllStatuses ? undefined : (s) => s.status === "active"
+  );
+
+  const details: MatchingSummary["details"] = [];
+  let matchesCreated = 0;
+
+  for (const tender of tenders) {
+    for (const subscriber of subscribers) {
+      const alreadyMatched = await db.tender_matches.findOne(
+        (m) => m.subscriber_id === subscriber.id && m.tender_id === tender.id
+      );
+      if (alreadyMatched) continue;
+
+      const { score, reasons } = calculateMatchScore(subscriber, tender);
+      if (score >= 40) {
+        await db.tender_matches.insert({
+          subscriber_id: subscriber.id,
+          tender_id: tender.id,
+          match_score: score,
+          match_reasons: JSON.stringify(reasons),
+          digest_sent: 0,
+          digest_sent_at: "",
+          bid_draft_generated: 0,
+          created_at: new Date().toISOString(),
+        });
+        matchesCreated++;
+        details.push({ subscriber_id: subscriber.id, email: subscriber.email, tender_id: tender.id, title: tender.title, score, reasons });
+      }
+    }
+  }
+
+  return { tenders_checked: tenders.length, subscribers_checked: subscribers.length, matches_created: matchesCreated, details };
 }
 
 /** Run a single portal scraper and record health. */
@@ -133,10 +177,12 @@ export async function runFullScrape(): Promise<ScrapeRunSummary> {
     if (result.error_message) errors.push(`${name}: ${result.error_message}`);
   }
 
-  // Run matching for all newly inserted tenders
+  // Run matching for all active tenders (not just new ones) against active subscribers
+  const subscribers = await db.subscribers.findAll((s) => s.status === "active");
+  const allActiveTenders = await db.tenders.findAll((t) => t.is_active === 1);
   let matchesCreated = 0;
-  for (const tender of allNewTenders) {
-    matchesCreated += await matchTender(tender);
+  for (const tender of allActiveTenders) {
+    matchesCreated += await matchTender(tender, subscribers);
   }
 
   return {
