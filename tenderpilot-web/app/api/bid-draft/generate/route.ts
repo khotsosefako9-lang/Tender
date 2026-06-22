@@ -3,11 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { getSupabaseClient } from "@/lib/supabase";
 
-export const maxDuration = 60;
+export const maxDuration = 10; // Vercel Hobby plan limit
 
 const DISCLAIMER =
   "AI-GENERATED FIRST DRAFT. Review, edit, and verify all details before submission. " +
-  "This document is a starting point only. Tenderpilot accepts no liability for the accuracy or completeness of this draft.";
+  "Tenderpilot accepts no liability for the accuracy or completeness of this draft.";
 
 const COMPLIANCE_DOCS = [
   { item: "CSD Supplier Registration confirmation (Central Supplier Database)", required: true },
@@ -22,19 +22,28 @@ const COMPLIANCE_DOCS = [
   { item: "Joint Venture agreement (if applicable)", required: false },
 ];
 
+const BLANK_PRICING_TABLE =
+  "| Item | Description | Unit | Qty | Rate (ZAR) | Total (ZAR) |\n" +
+  "|------|-------------|------|-----|------------|-------------|\n" +
+  "| 1    |             |      |     |            |             |\n" +
+  "| 2    |             |      |     |            |             |\n" +
+  "| 3    |             |      |     |            |             |\n" +
+  "| 4    |             |      |     |            |             |\n" +
+  "| 5    |             |      |     |            |             |\n" +
+  "|      | **TOTAL**   |      |     |            |             |";
+
 async function generateDraft(tenderId: number, subscriberId: number) {
-  const tender = await db.tenders.findOneWhere("id", tenderId);
+  // Run DB lookups in parallel to save time
+  const [tender, subscriber] = await Promise.all([
+    db.tenders.findOneWhere("id", tenderId),
+    db.subscribers.findOneWhere("id", subscriberId),
+  ]);
+
   if (!tender) throw new Error("Tender not found");
-
-  const subscriber = await db.subscribers.findOneWhere("id", subscriberId);
   if (!subscriber) throw new Error("Subscriber not found");
+  if (subscriber.tier === "scout") throw new Error("Bid draft generation requires a Bid or Pro subscription.");
 
-  // Check tier — only bid and pro may generate drafts
-  if (subscriber.tier === "scout") {
-    throw new Error("Bid draft generation requires a Bid or Pro subscription.");
-  }
-
-  // Check if a draft already exists for this tender+subscriber combination
+  // Check for existing match + draft in parallel
   const { data: existingMatch } = await getSupabaseClient()
     .from("tender_matches")
     .select("id")
@@ -55,58 +64,29 @@ async function generateDraft(tenderId: number, subscriberId: number) {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const prompt = `You are an expert South African tender writer. Generate a professional bid response draft for the following tender.
-
-TENDER DETAILS:
-- Title: ${tender.title}
-- Department: ${tender.department}
-- Reference Number: ${tender.reference_number}
-- Portal: ${tender.portal}
-- Province: ${tender.province ?? "South Africa"}
-- Tender Type: ${tender.tender_type}
-- CIDB Grade Required: ${tender.cidb_grade_min}–${tender.cidb_grade_max}
-- CIDB Class: ${tender.cidb_class || "Not specified"}
-- Closing Date: ${tender.closing_date}
-- Description: ${tender.description || tender.title}
-
-BIDDING COMPANY PROFILE:
-- Company: ${subscriber.company_name}
-- CIDB Grade: ${subscriber.cidb_grade}
-- CIDB Classes: ${subscriber.cidb_classes}
-- B-BBEE Level: ${subscriber.bbbee_level || "To be confirmed"}
-- CSD Number: ${subscriber.csd_number || "Registered"}
-- Years in Operation: ${subscriber.years_in_operation || "Established company"}
-- Provinces Active: ${subscriber.provinces}
-- Sectors: ${subscriber.sectors}
-
-Generate ONLY the following six sections as a JSON object. Do not include any text outside the JSON.
+  // Tight prompt — one focused paragraph per section keeps tokens low and Haiku fast
+  const prompt = `You are a South African tender writer. Return ONLY a JSON object (no markdown, no extra text) with these exact keys. Each value must be a plain string, 3–5 sentences max except where noted.
 
 {
-  "executive_summary": "2–3 paragraph executive summary positioning the company for this specific tender. Reference the tender title, department, and company name. Professional and persuasive tone.",
-  "company_introduction": "2–3 paragraphs introducing ${subscriber.company_name}. Include CIDB grade, registration, B-BBEE level, years in operation, relevant experience in sectors/provinces. Professional tone.",
-  "understanding_of_requirements": "2–3 paragraphs demonstrating clear understanding of what the tender requires, referencing the specific scope, location, and deliverables from the description.",
-  "methodology": "Structured methodology for delivering this specific tender. Include phases: mobilisation, execution, quality assurance, handover. Bullet-point format acceptable.",
-  "resource_plan": "Team structure and key resources for this project. Roles, experience levels, and any specialist subcontractors relevant to ${tender.cidb_class || "the work"}. Keep brief.",
-  "project_schedule": "High-level Gantt-style schedule as plain text. 4–8 phases with indicative timeframes (e.g. Week 1–2: Site establishment). Acknowledge that actual schedule will depend on contract award date.",
-  "pricing_framework": "BLANK PRICING TABLE ONLY — do not generate any prices or estimates whatsoever. Output only column headers and empty rows for the contractor to complete:\\n\\n| Item | Description | Unit | Qty | Rate (ZAR) | Total (ZAR) |\\n|------|-------------|------|-----|-----------|-------------|\\n| 1    |             |      |     |           |             |\\n| 2    |             |      |     |           |             |\\n| 3    |             |      |     |           |             |\\n| 4    |             |      |     |           |             |\\n| 5    |             |      |     |           |             |\\n|      | **TOTAL**   |      |     |           |             |"
+  "executive_summary": "Opening paragraph (3–4 sentences) why ${subscriber.company_name} is the right choice for: ${tender.title} (${tender.reference_number}), ${tender.department}. Mention CIDB Grade ${subscriber.cidb_grade}, B-BBEE ${subscriber.bbbee_level || "compliant"}, and relevant sector experience.",
+  "company_introduction": "3–4 sentences on ${subscriber.company_name}: CIDB Grade ${subscriber.cidb_grade} (${subscriber.cidb_classes}), operating in ${subscriber.provinces}, sectors: ${subscriber.sectors}. Mention CSD registration and compliance standing.",
+  "understanding_of_requirements": "3–4 sentences showing grasp of the scope: ${tender.description || tender.title}. Reference province (${tender.province ?? "South Africa"}), tender type (${tender.tender_type}), and CIDB class (${tender.cidb_class || "general"}).",
+  "methodology": "4–6 bullet points covering: mobilisation, execution, QA/QC, stakeholder communication, handover. Specific to ${tender.cidb_class || "the work type"}.",
+  "resource_plan": "3–4 sentences: key roles (site manager, foreman, safety officer, labourers), any specialist subcontractors for ${tender.cidb_class || "the scope"}, and commitment to local labour from ${tender.province ?? "the region"}.",
+  "project_schedule": "Plain-text schedule, 4–6 phases with week ranges, e.g. 'Week 1–2: Site establishment'. End with: Actual dates subject to contract award."
 }
 
-Important rules:
-- Write specifically for this tender — not generic boilerplate
-- Never invent CIDB grades, prices, project values, or company details not provided
-- Pricing framework must be a blank table only — no amounts ever
-- Keep each section concise and professional`;
+Rules: never invent prices or values; use only details provided above; be concise.`;
 
   const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 2000,
     messages: [{ role: "user", content: prompt }],
   });
 
   const content = message.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type from AI");
+  if (content.type !== "text") throw new Error("Unexpected AI response type");
 
-  // Extract JSON from the response (strip any markdown fences)
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("AI did not return valid JSON");
 
@@ -125,11 +105,10 @@ Important rules:
     risk_management: sections.understanding_of_requirements ?? "",
     project_schedule: sections.project_schedule ?? "",
     compliance_checklist: JSON.stringify(COMPLIANCE_DOCS),
-    pricing_framework: sections.pricing_framework ?? "",
+    pricing_framework: BLANK_PRICING_TABLE,
     generated_at: new Date().toISOString(),
   };
 
-  // Insert draft and mark the match as having a draft
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: draft, error } = await getSupabaseClient().from("bid_drafts").insert(draftRow as any).select().single();
   if (error) throw new Error(`Failed to save draft: ${error.message}`);
