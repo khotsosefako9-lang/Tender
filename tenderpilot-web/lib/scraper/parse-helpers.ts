@@ -88,6 +88,22 @@ export function parseSaDate(raw: string): string {
   return "";
 }
 
+/**
+ * Generate a stable deterministic reference ID when the scraper cannot parse
+ * a real reference number from the portal. Uses a simple djb2-style hash of
+ * title+portal so the same tender always produces the same ID across runs.
+ * Prefix makes it easy to identify synthetically-generated refs in the DB.
+ */
+export function stableRef(prefix: string, title: string, portal: string): string {
+  const input = `${title.toLowerCase().trim()}|${portal.toLowerCase().trim()}`;
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+    hash = hash >>> 0; // keep unsigned 32-bit
+  }
+  return `${prefix}/AUTO/${hash.toString(36).toUpperCase()}`;
+}
+
 /** Normalise whitespace in scraped strings */
 export function clean(s: string | undefined | null): string {
   return (s ?? "").replace(/\s+/g, " ").trim();

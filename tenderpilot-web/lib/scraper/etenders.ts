@@ -15,6 +15,7 @@ import {
   parseSaDate,
   clean,
   cleanOrNull,
+  stableRef,
 } from "./parse-helpers";
 
 const BASE = "https://etenders.treasury.gov.za";
@@ -120,7 +121,7 @@ export async function scrapeEtendersSearch(province = "Eastern Cape"): Promise<S
           const { min: gradeMin, max: gradeMax } = detectCidbGrade(combined);
           const { min: valueMin, max: valueMax } = detectContractValue(combined);
           return {
-            reference_number: row.tender_number ?? row.reference ?? "",
+            reference_number: row.tender_number ?? row.reference ?? stableRef("ET", clean(row.title ?? ""), "eTenders"),
             title: clean(row.title ?? row.description ?? ""),
             description: clean(row.description ?? row.title ?? ""),
             department: clean(row.department ?? ""),

@@ -4,7 +4,7 @@
  */
 import * as cheerio from "cheerio";
 import type { ScrapedTender } from "./types";
-import { detectCidbClass, detectCidbGrade, detectTenderType, detectContractValue, parseSaDate, clean } from "./parse-helpers";
+import { detectCidbClass, detectCidbGrade, detectTenderType, detectContractValue, parseSaDate, clean, stableRef } from "./parse-helpers";
 
 const TENDERS_URL = "https://www.ectreasury.gov.za/tenders";
 
@@ -47,13 +47,13 @@ export async function scrapeEcTreasury(): Promise<ScrapedTender[]> {
       title = clean($(el).find("h2,h3,h4,a,.title").first().text()) || clean($(el).text()).split("\n")[0];
       const text = clean($(el).text());
       const refMatch = text.match(/(?:EC|RFQ|T)[/\-]?\w*[/\-]?20\d{2}[/\-]\d+/i);
-      refNumber = refMatch ? refMatch[0] : `ECT/${new Date().getFullYear()}/${Date.now()}`;
+      refNumber = refMatch ? refMatch[0] : stableRef("ECT", title, "EC Provincial Treasury");
       const closingMatch = text.match(/(?:closing|closes?)[:\s]+([^\n,;]+)/i);
       closingRaw = closingMatch ? closingMatch[1] : "";
     }
 
     if (!title || title.length < 5) return;
-    if (!refNumber) refNumber = `ECT/${new Date().getFullYear()}/${Date.now()}`;
+    if (!refNumber) refNumber = stableRef("ECT", title, "EC Provincial Treasury");
 
     const combined = `${title} ${department}`;
     const { min: gradeMin, max: gradeMax } = detectCidbGrade(combined);

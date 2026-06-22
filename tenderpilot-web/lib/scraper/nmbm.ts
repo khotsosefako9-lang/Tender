@@ -4,7 +4,7 @@
  */
 import * as cheerio from "cheerio";
 import type { ScrapedTender } from "./types";
-import { detectCidbClass, detectCidbGrade, detectTenderType, detectContractValue, parseSaDate, clean } from "./parse-helpers";
+import { detectCidbClass, detectCidbGrade, detectTenderType, detectContractValue, parseSaDate, clean, stableRef } from "./parse-helpers";
 
 const BASE = "https://www.nmbm.co.za";
 const TENDERS_URL = `${BASE}/category/tenders/`;
@@ -38,7 +38,7 @@ export async function scrapeNmbm(): Promise<ScrapedTender[]> {
 
     // Extract reference number (e.g. NMBM/2024/001, T2024/01)
     const refMatch = text.match(/(?:NMBM|NMB|T)\s*[/\-]?\s*20\d{2}\s*[/\-]\s*\d+/i);
-    const refNumber = refMatch ? refMatch[0].replace(/\s+/g, "") : `NMBM/${new Date().getFullYear()}/${Date.now()}`;
+    const refNumber = refMatch ? refMatch[0].replace(/\s+/g, "") : stableRef("NMBM", title, "NMBM");
 
     // Extract closing date
     const closingMatch = text.match(/(?:closing|closes?|deadline)[:\s]+([^\n,]+)/i);
