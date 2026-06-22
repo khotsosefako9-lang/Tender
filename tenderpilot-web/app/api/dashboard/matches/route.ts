@@ -20,6 +20,7 @@ export async function GET(_req: NextRequest) {
       const draft = await db.bid_drafts.findOne((d) => d.match_id === m.id);
       return {
         ...m,
+        tender_id: tender?.id ?? 0,
         title: tender?.title ?? "Unknown Tender",
         department: tender?.department ?? "",
         closing_date: tender?.closing_date ?? "",

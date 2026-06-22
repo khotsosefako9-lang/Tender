@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 type Match = {
-  id: number; match_score: number; match_reasons: string; bid_draft_generated: number;
+  id: number; tender_id: number; match_score: number; match_reasons: string; bid_draft_generated: number;
   title: string; department: string; closing_date: string; tender_type: string;
   contract_value_max: number; province: string; draft_id: number | null;
 };
@@ -53,11 +53,11 @@ function BidDraftModal({ matchId, onClose }: { matchId: number; onClose: () => v
 
   const sections = draft ? [
     { key: "executive_summary", label: "Executive Summary" },
-    { key: "methodology", label: "Methodology" },
-    { key: "resource_plan", label: "Resource Plan" },
-    { key: "risk_management", label: "Risk Management" },
+    { key: "resource_plan", label: "Company Introduction & Resource Plan" },
+    { key: "risk_management", label: "Understanding of Requirements" },
+    { key: "methodology", label: "Proposed Methodology & Approach" },
     { key: "project_schedule", label: "Project Schedule" },
-    { key: "pricing_framework", label: "Pricing Framework" },
+    { key: "pricing_framework", label: "Pricing Framework (Blank — complete before submission)" },
   ] : [];
 
   return (
@@ -174,7 +174,9 @@ export default function DashboardPage() {
   const [showDraft, setShowDraft] = useState<number | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showScoreInfo, setShowScoreInfo] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState<number | null>(null);
   const tier = user?.tier || "scout";
+  const userId = Number((session?.user as { id?: string })?.id ?? 0);
 
   useEffect(() => {
     fetch("/api/dashboard/matches").then(r => r.json()).then(d => setMatches(d.matches || []));
@@ -182,6 +184,29 @@ export default function DashboardPage() {
     fetch("/api/dashboard/deadlines").then(r => r.json()).then(d => setDeadlines(d.deadlines || []));
     if (tier === "pro") fetch("/api/dashboard/awards").then(r => r.json()).then(d => setAwards(d.awards || []));
   }, [tier]);
+
+  const loadMatches = () =>
+    fetch("/api/dashboard/matches").then(r => r.json()).then(d => setMatches(d.matches || []));
+
+  const generateBidDraft = async (match: Match) => {
+    if (!userId || !match.tender_id) return;
+    setGeneratingDraft(match.id);
+    try {
+      const res = await fetch("/api/bid-draft/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tender_id: match.tender_id, subscriber_id: userId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadMatches();
+        // Open the draft viewer immediately
+        setShowDraft(match.id);
+      }
+    } finally {
+      setGeneratingDraft(null);
+    }
+  };
 
   const tabs = [
     { id: "matches", label: "Matches", icon: TrendingUp },
@@ -289,11 +314,24 @@ export default function DashboardPage() {
                             <Badge variant="info">{m.tender_type || "Tender"}</Badge>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              {m.draft_id && (tier === "bid" || tier === "pro") && (
-                                <Button size="sm" variant="outline" onClick={() => setShowDraft(m.id)} className="text-xs">
-                                  <FileText className="h-3 w-3 mr-1" /> Draft
-                                </Button>
+                            <div className="flex gap-2 items-center">
+                              {(tier === "bid" || tier === "pro") && (
+                                m.draft_id ? (
+                                  <Button size="sm" variant="outline" onClick={() => setShowDraft(m.id)} className="text-xs gap-1">
+                                    <FileText className="h-3 w-3" /> View Draft
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="amber"
+                                    onClick={() => generateBidDraft(m)}
+                                    disabled={generatingDraft === m.id}
+                                    className="text-xs gap-1"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    {generatingDraft === m.id ? "Generating..." : "Generate Draft"}
+                                  </Button>
+                                )
                               )}
                               {tier === "scout" && (
                                 <span className="text-xs text-gray-400 italic">Upgrade to Bid</span>
