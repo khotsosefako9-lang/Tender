@@ -45,6 +45,28 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function SectionBody({ text }: { text: string }) {
+  // If the value is a JSON array, render each item as a bullet point
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return (
+        <ul className="space-y-2">
+          {parsed.map((item: string, i: number) => (
+            <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
+              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-navy flex-shrink-0 translate-y-1.5" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+  } catch {
+    // Not JSON — fall through to plain text
+  }
+  return <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>;
+}
+
 function BidDraftModal({ matchId, onClose }: { matchId: number; onClose: () => void }) {
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   useEffect(() => {
@@ -81,7 +103,7 @@ function BidDraftModal({ matchId, onClose }: { matchId: number; onClose: () => v
                   <CopyButton text={draft[key] || ""} />
                 </div>
                 <div className="p-4">
-                  <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{draft[key]}</pre>
+                  <SectionBody text={draft[key] || ""} />
                 </div>
               </div>
             ))}
