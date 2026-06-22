@@ -3,8 +3,7 @@ import { runAllMatching } from "@/lib/scraper";
 
 export const maxDuration = 60;
 
-// Auth temporarily removed for testing — re-add before go-live
-export async function POST() {
+async function handleRequest() {
   try {
     const summary = await runAllMatching(true);
     return NextResponse.json({ success: true, ...summary });
@@ -12,4 +11,13 @@ export async function POST() {
     console.error("[run-matching] error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
+}
+
+// Auth temporarily removed for testing — re-add before go-live
+export async function GET() {
+  return handleRequest();
+}
+
+export async function POST() {
+  return handleRequest();
 }
