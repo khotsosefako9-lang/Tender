@@ -66,16 +66,19 @@ export async function sendDigestEmail(
 
     return `
     <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fff;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
-        <div style="flex:1;min-width:0;">
-          <p style="margin:0 0 4px;font-size:15px;font-weight:600;color:#1e3a5f;line-height:1.4;">${escHtml(m.title)}</p>
-          <p style="margin:0;font-size:13px;color:#6b7280;">${escHtml(m.department)}${m.province ? ` &middot; ${escHtml(m.province)}` : ""}</p>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:20px;font-weight:800;color:${scoreColor};line-height:1;">${m.match_score}%</div>
-          <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;">match</div>
-        </div>
-      </div>
+      <!-- Two-column table keeps title and score apart in all email clients -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+        <tr>
+          <td style="vertical-align:top;padding-right:16px;">
+            <p style="margin:0 0 4px;font-size:15px;font-weight:600;color:#1e3a5f;line-height:1.4;">${escHtml(m.title)}</p>
+            <p style="margin:0;font-size:13px;color:#6b7280;">${escHtml(m.department)}${m.province ? ` &middot; ${escHtml(m.province)}` : ""}</p>
+          </td>
+          <td width="60" style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:16px;">
+            <div style="font-size:20px;font-weight:800;color:${scoreColor};line-height:1;">${m.match_score}%</div>
+            <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;">match</div>
+          </td>
+        </tr>
+      </table>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <span style="background:#eff6ff;color:#1d4ed8;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;">${escHtml(m.tender_type || "Tender")}</span>
         ${m.reference_number ? `<span style="background:#f3f4f6;color:#6b7280;padding:3px 10px;border-radius:9999px;font-size:12px;">${escHtml(m.reference_number)}</span>` : ""}
