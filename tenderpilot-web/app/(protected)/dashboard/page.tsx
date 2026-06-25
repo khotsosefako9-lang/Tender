@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, expiryLabel, deadlineUrgency, formatCurrency } from "@/lib/utils";
 import {
   LogOut, Upload, Info, FileText, Calendar, Trophy, Copy, Check,
-  TrendingUp, Clock, AlertTriangle, CheckCircle2, XCircle
+  TrendingUp, Clock, AlertTriangle, CheckCircle2, XCircle, ChevronDown
 } from "lucide-react";
 
 type Match = {
@@ -19,6 +19,37 @@ type Match = {
 type Doc = { id: number; document_type: string; document_name: string; expiry_date: string | null; uploaded_at: string };
 type Deadline = { id: number; title: string; department: string; closing_date: string; match_score: number };
 type Award = { id: number; tender_title: string; department: string; awarded_to: string; award_value: number; award_date: string };
+
+function MatchReasons({ reasons }: { reasons: string }) {
+  const [open, setOpen] = useState(false);
+  let items: string[] = [];
+  try { const p = JSON.parse(reasons); if (Array.isArray(p)) items = p; } catch { /* not JSON */ }
+  if (items.length === 0) return null;
+
+  const isExact = (r: string) => /match|exact|within/i.test(r);
+
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 text-xs text-brand-navy/70 hover:text-brand-navy transition-colors"
+      >
+        <span>Why this match?</span>
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <ul className="mt-1.5 space-y-1 pl-0.5">
+          {items.map((r, i) => (
+            <li key={i} className="flex items-start gap-1.5 text-xs leading-snug">
+              <span className={`mt-0.5 shrink-0 font-bold ${isExact(r) ? "text-green-600" : "text-amber-500"}`}>✓</span>
+              <span className={isExact(r) ? "text-gray-700" : "text-gray-500"}>{r}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function MatchScoreBar({ score }: { score: number }) {
   const color = score >= 75 ? "bg-green-500" : score >= 50 ? "bg-brand-amber" : "bg-orange-400";
@@ -328,6 +359,7 @@ export default function DashboardPage() {
                           <td className="px-4 py-3">
                             <p className="font-medium text-brand-navy text-sm max-w-xs truncate" title={m.title}>{m.title}</p>
                             {m.province && <p className="text-xs text-gray-400 mt-0.5">{m.province}</p>}
+                            {m.match_reasons && <MatchReasons reasons={m.match_reasons} />}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 max-w-[150px] truncate">{m.department}</td>
                           <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(m.closing_date)}</td>
