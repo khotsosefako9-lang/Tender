@@ -76,16 +76,48 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function SectionBody({ text }: { text: string }) {
-  // If the value is a JSON array, render each item as a bullet point
+function MarkdownTable({ text }: { text: string }) {
+  // Parse a markdown pipe table into header + rows
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.startsWith("|"));
+  if (lines.length < 2) return <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>;
+  const parseRow = (line: string) => line.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  const [headerLine, , ...bodyLines] = lines; // skip separator line
+  const headers = parseRow(headerLine);
+  const rows = bodyLines.map(parseRow);
+  return (
+    <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-brand-navy/5">
+            {headers.map((h, i) => (
+              <th key={i} className="px-4 py-2.5 text-left font-semibold text-brand-navy border-b border-gray-200 whitespace-nowrap">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+              {row.map((cell, j) => (
+                <td key={j} className="px-4 py-2.5 border-b border-gray-100 text-gray-600">{cell || <span className="text-gray-300 italic">—</span>}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SectionBody({ text, isPricing }: { text: string; isPricing?: boolean }) {
+  if (isPricing && text.includes("|")) return <MarkdownTable text={text} />;
   try {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) {
       return (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {parsed.map((item: string, i: number) => (
-            <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
-              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-navy flex-shrink-0 translate-y-1.5" />
+            <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-navy/40 flex-shrink-0" />
               <span>{item}</span>
             </li>
           ))}
@@ -95,65 +127,136 @@ function SectionBody({ text }: { text: string }) {
   } catch {
     // Not JSON — fall through to plain text
   }
-  return <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>;
+  return <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{text}</p>;
 }
 
-function BidDraftModal({ matchId, onClose }: { matchId: number; onClose: () => void }) {
-  const [draft, setDraft] = useState<Record<string, string> | null>(null);
-  useEffect(() => {
-    fetch(`/api/dashboard/draft?match_id=${matchId}`).then(r => r.json()).then(d => setDraft(d.draft));
-  }, [matchId]);
+function DraftLoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="relative">
+        <div className="h-12 w-12 rounded-full border-4 border-brand-navy/10 border-t-brand-navy animate-spin" />
+      </div>
+      <div className="text-center">
+        <p className="font-semibold text-brand-navy text-sm">Generating your bid draft…</p>
+        <p className="text-xs text-gray-400 mt-1">This takes a few seconds. Please wait.</p>
+      </div>
+    </div>
+  );
+}
 
-  const sections = draft ? [
-    { key: "executive_summary", label: "Executive Summary" },
-    { key: "resource_plan", label: "Company Introduction & Resource Plan" },
-    { key: "risk_management", label: "Understanding of Requirements" },
-    { key: "methodology", label: "Proposed Methodology & Approach" },
-    { key: "project_schedule", label: "Project Schedule" },
-    { key: "pricing_framework", label: "Pricing Framework (Blank — complete before submission)" },
-  ] : [];
+function BidDraftModal({ matchId, isGenerating, onClose }: { matchId: number; isGenerating: boolean; onClose: () => void }) {
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isGenerating) { setDraft(null); setLoading(true); return; }
+    setLoading(true);
+    fetch(`/api/dashboard/draft?match_id=${matchId}`)
+      .then(r => r.json())
+      .then(d => { setDraft(d.draft); setLoading(false); });
+  }, [matchId, isGenerating]);
+
+  const sections = [
+    { key: "executive_summary", label: "Executive Summary", icon: "01" },
+    { key: "resource_plan", label: "Company Introduction & Resource Plan", icon: "02" },
+    { key: "risk_management", label: "Understanding of Requirements", icon: "03" },
+    { key: "methodology", label: "Proposed Methodology & Approach", icon: "04" },
+    { key: "project_schedule", label: "Project Schedule", icon: "05" },
+    { key: "pricing_framework", label: "Pricing Framework", icon: "06", isPricing: true },
+  ];
+
+  const showLoading = isGenerating || loading;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-brand-navy">AI Bid Draft</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-        </div>
-        {!draft ? (
-          <div className="p-12 text-center text-gray-400">Loading draft...</div>
-        ) : (
-          <div className="p-6 space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-              <strong>Important:</strong> This is an AI-generated first draft. Review carefully, add actual pricing, and verify compliance before submitting.
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Modal header */}
+        <div className="flex items-start justify-between px-7 py-5 border-b border-gray-100">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-xs font-semibold uppercase tracking-widest text-brand-navy/40">Tenderpilot</span>
+              <span className="text-xs text-gray-300">·</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-brand-navy/40">AI Bid Draft</span>
             </div>
-            {sections.map(({ key, label }) => (
-              <div key={key} className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-brand-navy text-sm">{label}</h3>
-                  <CopyButton text={draft[key] || ""} />
-                </div>
-                <div className="p-4">
-                  <SectionBody text={draft[key] || ""} />
-                </div>
+            <h2 className="text-xl font-bold text-brand-navy leading-tight">Tender Proposal Document</h2>
+          </div>
+          <button onClick={onClose} className="mt-1 h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none">×</button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-7 py-6">
+          {showLoading ? (
+            <DraftLoadingState />
+          ) : draft ? (
+            <div className="space-y-0">
+              {/* Disclaimer banner */}
+              <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-7 text-sm text-amber-800">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-500" />
+                <span><strong>Review before submitting.</strong> This is an AI-generated first draft. Add your actual pricing, verify all compliance requirements, and tailor the content to your company before submission.</span>
               </div>
-            ))}
-            {draft.compliance_checklist && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-brand-navy text-sm">Compliance Checklist</h3>
-                </div>
-                <div className="p-4 space-y-2">
-                  {JSON.parse(draft.compliance_checklist).map((item: { item: string; required: boolean }, i: number) => (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      {item.required ? <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" /> : <XCircle className="h-4 w-4 text-gray-300 flex-shrink-0" />}
-                      <span className={item.required ? "text-gray-700" : "text-gray-400"}>{item.item}</span>
-                      {!item.required && <span className="text-xs text-gray-400">(if applicable)</span>}
+
+              {sections.map(({ key, label, icon, isPricing }, idx) => {
+                const content = draft[key] || "";
+                if (!content) return null;
+                return (
+                  <div key={key}>
+                    {idx > 0 && <div className="border-t border-gray-100 my-6" />}
+                    <div className="group">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex-shrink-0 h-7 w-7 rounded-full bg-brand-navy text-white text-xs font-bold flex items-center justify-center">{icon}</span>
+                          <h3 className="font-semibold text-brand-navy text-base leading-tight">{label}</h3>
+                        </div>
+                        <CopyButton text={content} />
+                      </div>
+                      <div className="ml-10">
+                        <SectionBody text={content} isPricing={isPricing} />
+                        {isPricing && (
+                          <p className="text-xs text-gray-400 mt-3 italic">Complete the blank cells with your actual pricing before submission.</p>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                );
+              })}
+
+              {draft.compliance_checklist && (() => {
+                let items: { item: string; required: boolean }[] = [];
+                try { items = JSON.parse(draft.compliance_checklist); } catch { return null; }
+                return (
+                  <div>
+                    <div className="border-t border-gray-100 my-6" />
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="flex-shrink-0 h-7 w-7 rounded-full bg-brand-navy text-white text-xs font-bold flex items-center justify-center">07</span>
+                      <h3 className="font-semibold text-brand-navy text-base">Compliance Checklist</h3>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-start gap-3 text-sm py-1">
+                          {item.required
+                            ? <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                            : <XCircle className="h-4 w-4 text-gray-300 flex-shrink-0 mt-0.5" />}
+                          <span className={item.required ? "text-gray-700" : "text-gray-400"}>
+                            {item.item}
+                            {!item.required && <span className="ml-1 text-xs text-gray-400">(if applicable)</span>}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="py-16 text-center text-gray-400 text-sm">Draft not found.</div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!showLoading && draft && (
+          <div className="px-7 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50 rounded-b-2xl">
+            <p className="text-xs text-gray-400">Generated by Tenderpilot AI · Not legal or compliance advice</p>
+            <button onClick={onClose} className="text-xs font-medium text-brand-navy hover:underline">Close</button>
           </div>
         )}
       </div>
@@ -242,8 +345,9 @@ export default function DashboardPage() {
     fetch("/api/dashboard/matches").then(r => r.json()).then(d => setMatches(d.matches || []));
 
   const generateBidDraft = async (match: Match) => {
-    if (!userId || !match.tender_id) return;
+    if (!userId || !match.tender_id || generatingDraft !== null) return;
     setGeneratingDraft(match.id);
+    setShowDraft(match.id); // open modal immediately — shows loading state
     try {
       const res = await fetch("/api/bid-draft/generate", {
         method: "POST",
@@ -253,8 +357,6 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         await loadMatches();
-        // Open the draft viewer immediately
-        setShowDraft(match.id);
       }
     } finally {
       setGeneratingDraft(null);
@@ -560,7 +662,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {showDraft && <BidDraftModal matchId={showDraft} onClose={() => setShowDraft(null)} />}
+      {showDraft && <BidDraftModal matchId={showDraft} isGenerating={generatingDraft === showDraft} onClose={() => { setShowDraft(null); }} />}
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onSuccess={() => fetch("/api/dashboard/documents").then(r => r.json()).then(d => setDocs(d.documents || []))} />}
     </div>
   );
